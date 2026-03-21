@@ -1,0 +1,41 @@
+{
+  "date": "2026-03-21",
+  "emails": [
+    {
+      "id": "1",
+      "from": "alice.martin@example.com",
+      "subject": "Réunion d'équipe vendredi",
+      "date": "2026-03-21T08:15:00",
+      "body": "Bonjour, je vous rappelle que la réunion d'équipe est prévue vendredi à 14h. Merci de confirmer votre présence."
+    },
+    {
+      "id": "2",
+      "from": "newsletter@tech-news.io",
+      "subject": "Les dernières tendances IA - Mars 2026",
+      "date": "2026-03-21T09:02:00",
+      "body": "Au sommaire cette semaine : Claude 4.6 dépasse les benchmarks, n8n v2 sort en production, les LLM locaux gagnent du terrain..."
+    },
+    {
+      "id": "3",
+      "from": "support@github.com",
+      "subject": "Votre Pull Request a été mergée",
+      "date": "2026-03-21T10:45:00",
+      "body": "La Pull Request #42 'feat: add email dashboard' a été mergée dans main. Bravo !"
+    },
+    {
+      "id": "4",
+      "from": "boss@monentreprise.fr",
+      "subject": "Rapport hebdomadaire - urgent",
+      "date": "2026-03-21T11:30:00",
+      "body": "Bonjour, merci de me faire parvenir le rapport hebdomadaire avant 17h aujourd'hui. Cordialement."
+    },
+    {
+      "id": "5",
+      "from": "alice.martin@example.com",
+      "subject": "RE: Réunion d'équipe vendredi",
+      "date": "2026-03-21T13:20:00",
+      "body": "Merci pour le rappel ! Je confirme ma présence. Est-ce qu'on peut prévoir un point sur le projet n8n ?"
+    }
+  ],
+  "summary": "Aujourd'hui, 5 emails ont été reçus. Alice Martin a envoyé 2 messages concernant la réunion d'équipe de vendredi. Une newsletter tech a été reçue avec les tendances IA du mois. GitHub a notifié le merge d'une Pull Request. Le point le plus urgent est la demande du responsable concernant le rapport hebdomadaire à rendre avant 17h."
+}
