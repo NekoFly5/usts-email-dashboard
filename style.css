@@ -829,6 +829,53 @@ body {
 }
 .toast-undo:hover { text-decoration: underline; }
 
+/* ── Theme toggle button ────────────────────────── */
+.topbar-r {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--t2);
+  cursor: pointer;
+  transition: all .1s;
+  flex-shrink: 0;
+}
+.theme-toggle:hover { background: var(--bg); color: var(--t1); }
+
+/* ── Dark mode ──────────────────────────────────── */
+[data-theme="dark"] {
+  --bg:         #09090b;
+  --surface:    #111113;
+  --surface-2:  #17171a;
+  --border:     #27272a;
+  --border-2:   #1f1f23;
+  --t1:         #fafafa;
+  --t2:         #a1a1aa;
+  --t3:         #52525b;
+  --shadow-xs:  0 1px 2px rgba(0,0,0,.4);
+  --shadow-sm:  0 1px 3px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.25);
+  --shadow-md:  0 4px 16px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.4);
+}
+
+[data-theme="dark"] .filter-clear:hover {
+  background: rgba(239,68,68,.12);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+[data-theme="dark"] .ctx-item.danger:hover { background: rgba(239,68,68,.12); }
+
 /* ── Utilities ──────────────────────────────────── */
 .hidden { display: none !important; }
 
