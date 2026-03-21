@@ -6,131 +6,154 @@
   <title>Mail Summary</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="shell">
 
-    <!-- ── Sidebar ── -->
-    <aside class="sidebar">
-      <div class="sidebar-logo">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-        <span>MailSummary</span>
+  <div class="layout">
+
+    <!-- ════════════════ SIDEBAR ════════════════ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-brand">
+        <div class="sb-brand-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2.5"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        </div>
+        <span class="sb-brand-name">MailSummary</span>
       </div>
 
-      <nav class="sidebar-nav">
-        <a class="nav-item active" href="#">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          Aujourd'hui
-          <span class="nav-badge" id="nav-count">0</span>
+      <nav class="sb-nav">
+        <div class="sb-section-label">Boîte de réception</div>
+        <a class="sb-item active" href="#">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span>Aujourd'hui</span>
+          <span class="sb-badge" id="nav-count">—</span>
         </a>
-        <a class="nav-item" href="#">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          Tous les mails
+        <a class="sb-item" href="#">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <span>Tous les mails</span>
         </a>
-        <a class="nav-item" href="#">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          Importants
+        <a class="sb-item" href="#">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span>Importants</span>
         </a>
-        <a class="nav-item" href="#">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
-          Archive
+
+        <div class="sb-section-label" style="margin-top:20px">Dossiers</div>
+        <a class="sb-item" href="#">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+          <span>Archive</span>
+        </a>
+        <a class="sb-item" href="#">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          <span>Corbeille</span>
         </a>
       </nav>
 
-      <div class="sidebar-footer">
-        <div class="sidebar-date" id="sidebar-date"></div>
+      <div class="sb-footer">
+        <div class="sb-status">
+          <div class="sb-status-dot"></div>
+          <span>n8n · synchronisé</span>
+        </div>
+        <div class="sb-date-full" id="sb-date-full"></div>
       </div>
     </aside>
 
-    <!-- ── Main content ── -->
-    <div class="content">
+    <!-- ════════════════ MAIN ════════════════ -->
+    <div class="main">
 
-      <!-- Top bar -->
+      <!-- Topbar -->
       <header class="topbar">
-        <div class="topbar-left">
-          <button class="menu-btn" onclick="toggleSidebar()" aria-label="Menu">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <div class="topbar-l">
+          <button class="hamburger" id="hamburger" onclick="toggleSidebar()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
-          <h1 class="topbar-title">Résumé du jour</h1>
-          <span class="topbar-date" id="topbar-date"></span>
+          <div class="topbar-title-group">
+            <h1 class="topbar-title">Résumé du jour</h1>
+            <span class="topbar-date" id="topbar-date"></span>
+          </div>
         </div>
-        <div class="topbar-right">
-          <span class="topbar-count" id="topbar-count"></span>
+        <div class="topbar-r">
+          <div class="topbar-pill" id="topbar-pill"></div>
         </div>
       </header>
 
-      <div class="page">
+      <!-- Scrollable content -->
+      <div class="content-area">
 
-        <!-- AI Summary card -->
-        <section class="summary-card">
-          <div class="summary-header">
-            <div class="summary-label">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-              Analyse IA
-            </div>
+        <!-- Stats strip -->
+        <div class="stats-strip" id="stats-strip"></div>
+
+        <!-- AI Summary -->
+        <section class="summary-block">
+          <div class="summary-eyebrow">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+            Analyse IA — résumé de la journée
           </div>
-          <p class="summary-text" id="ai-summary">Chargement du résumé...</p>
+          <p class="summary-body" id="ai-summary">Chargement…</p>
         </section>
 
-        <!-- Filters -->
-        <div class="filters">
-          <div class="search-wrap">
-            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="search-input" class="search-input" placeholder="Rechercher..." oninput="applyFilters()" />
+        <!-- Filter bar -->
+        <div class="filter-bar">
+          <div class="filter-search-wrap">
+            <svg class="filter-search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="search-input" class="filter-search" type="text" placeholder="Rechercher parmi les mails…" oninput="applyFilters()" autocomplete="off" />
           </div>
           <div class="filter-chips" id="filter-chips"></div>
-          <button class="reset-btn hidden" id="reset-btn" onclick="resetFilters()">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <button class="filter-clear hidden" id="reset-btn" onclick="resetFilters()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             Effacer
           </button>
         </div>
 
-        <!-- Filter info -->
-        <div class="filter-info" id="filter-info"></div>
+        <p class="filter-result-info" id="filter-info"></p>
 
         <!-- Email list -->
         <div class="email-list" id="email-list">
-          <div class="state-loading">
+          <div class="list-loading">
             <div class="spinner"></div>
-            <span>Chargement des emails...</span>
+            Chargement des emails…
           </div>
         </div>
 
-        <div class="no-results hidden" id="no-results">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <p>Aucun résultat pour cette recherche.</p>
+        <div class="list-empty hidden" id="no-results">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+          Aucun résultat
         </div>
 
       </div>
     </div>
 
-    <!-- ── Reading pane ── -->
-    <div class="reading-pane" id="reading-pane">
-      <div class="reading-empty" id="reading-empty">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-        <p>Sélectionnez un email</p>
+    <!-- ════════════════ DETAIL PANEL ════════════════ -->
+    <div class="detail" id="detail">
+      <div class="detail-placeholder" id="detail-placeholder">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        <p>Sélectionnez un email<br>pour le lire</p>
       </div>
-      <div class="reading-content hidden" id="reading-content">
-        <div class="reading-header">
-          <button class="close-btn" onclick="closeReading()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+
+      <div class="detail-body hidden" id="detail-body">
+        <div class="detail-top">
+          <button class="detail-close" onclick="closeDetail()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
-          <h2 class="reading-subject" id="reading-subject"></h2>
         </div>
-        <div class="reading-meta">
-          <div class="reading-avatar" id="reading-avatar"></div>
-          <div class="reading-info">
-            <span class="reading-from" id="reading-from"></span>
-            <span class="reading-date" id="reading-date"></span>
+        <div class="detail-subject-wrap">
+          <h2 class="detail-subject" id="detail-subject"></h2>
+        </div>
+        <div class="detail-sender-row">
+          <div class="detail-avatar" id="detail-avatar"></div>
+          <div class="detail-sender-info">
+            <span class="detail-from" id="detail-from"></span>
+            <span class="detail-when" id="detail-when"></span>
           </div>
         </div>
-        <div class="reading-body" id="reading-body"></div>
+        <div class="detail-message" id="detail-message"></div>
       </div>
     </div>
 
   </div>
+
+  <!-- Mobile overlay -->
+  <div class="overlay hidden" id="overlay" onclick="toggleSidebar()"></div>
 
   <script src="app.js"></script>
 </body>

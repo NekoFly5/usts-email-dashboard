@@ -1,128 +1,150 @@
-/* ── Mail Summary – app.js ── */
+/* ═══════════════════════════════════════════
+   Mail Summary — app.js
+   ═══════════════════════════════════════════ */
 
-const AVATAR_COLORS = [
-  '#6366f1','#8b5cf6','#ec4899','#ef4444',
-  '#f59e0b','#10b981','#3b82f6','#06b6d4',
+const PALETTE = [
+  '#6366f1','#8b5cf6','#a855f7','#ec4899',
+  '#ef4444','#f97316','#eab308','#22c55e',
+  '#14b8a6','#3b82f6','#0ea5e9','#06b6d4',
 ];
 
-let allEmails = [];
-let filteredEmails = [];
+let all = [];
+let filtered = [];
 let activeChip = null;
-let selectedId = null;
+let openId = null;
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+/* ── Utils ─────────────────────────────── */
 
-function avatarColor(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+const esc = s =>
+  (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+function hashColor(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+  return PALETTE[Math.abs(h) % PALETTE.length];
 }
 
 function initials(email) {
-  const name = email.split('@')[0];
-  const parts = name.split(/[._\-+]/);
+  const local = email.split('@')[0];
+  const parts = local.split(/[._\-+]/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return name.slice(0, 2).toUpperCase();
+  return local.slice(0, 2).toUpperCase();
 }
 
-function esc(str) {
-  if (!str) return '';
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function fmtTime(iso) {
+function fmtShortTime(iso) {
   return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
-function fmtDate(iso) {
+function fmtLong(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
+       + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtDayFull(iso) {
   return new Date(iso).toLocaleDateString('fr-FR', {
-    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
 }
 
-function fmtFull(iso) {
-  const d = new Date(iso);
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })
-    + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+/* ── Stats strip ───────────────────────── */
+
+function renderStats(emails) {
+  const strip = document.getElementById('stats-strip');
+  const senders = new Set(emails.map(e => e.from));
+
+  // Most frequent sender
+  const freq = {};
+  emails.forEach(e => { freq[e.from] = (freq[e.from] || 0) + 1; });
+  const top = Object.entries(freq).sort((a, b) => b[1] - a[1])[0];
+
+  strip.innerHTML = `
+    <div class="stat-card">
+      <span class="stat-label">Emails reçus</span>
+      <span class="stat-value">${emails.length}</span>
+      <span class="stat-sub">aujourd'hui</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Expéditeurs</span>
+      <span class="stat-value">${senders.size}</span>
+      <span class="stat-sub">uniques</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Plus actif</span>
+      <span class="stat-value" style="font-size:14px;letter-spacing:0;padding-top:4px">${
+        top ? esc(top[0].split('@')[0]) : '—'
+      }</span>
+      <span class="stat-sub">${top ? top[1] + ' message' + (top[1] > 1 ? 's' : '') : ''}</span>
+    </div>
+  `;
 }
 
-// ── Render chips ──────────────────────────────────────────────────────────────
+/* ── Chips ─────────────────────────────── */
 
 function buildChips(emails) {
-  const senders = [...new Set(emails.map(e => e.from))].sort();
   const wrap = document.getElementById('filter-chips');
+  const senders = [...new Set(emails.map(e => e.from))].sort();
   wrap.innerHTML = '';
-  senders.forEach(sender => {
+  senders.forEach(s => {
     const btn = document.createElement('button');
     btn.className = 'chip';
-    btn.textContent = sender.split('@')[0];
-    btn.title = sender;
-    btn.onclick = () => toggleChip(btn, sender);
+    btn.textContent = s.split('@')[0];
+    btn.title = s;
+    btn.onclick = () => {
+      activeChip = activeChip === s ? null : s;
+      wrap.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      if (activeChip) btn.classList.add('active');
+      applyFilters();
+    };
     wrap.appendChild(btn);
   });
 }
 
-function toggleChip(btn, sender) {
-  const chips = document.querySelectorAll('.chip');
-  if (activeChip === sender) {
-    activeChip = null;
-    chips.forEach(c => c.classList.remove('active'));
-  } else {
-    activeChip = sender;
-    chips.forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
-  }
-  applyFilters();
-}
-
-// ── Filters ───────────────────────────────────────────────────────────────────
+/* ── Filters ───────────────────────────── */
 
 function applyFilters() {
   const kw = document.getElementById('search-input').value.trim().toLowerCase();
-  const resetBtn = document.getElementById('reset-btn');
 
-  filteredEmails = allEmails.filter(e => {
-    const matchSender = !activeChip || e.from === activeChip;
-    const matchKw = !kw
+  filtered = all.filter(e => {
+    const okSender = !activeChip || e.from === activeChip;
+    const okKw = !kw
       || e.from.toLowerCase().includes(kw)
       || e.subject.toLowerCase().includes(kw)
       || (e.body || '').toLowerCase().includes(kw);
-    return matchSender && matchKw;
+    return okSender && okKw;
   });
 
-  renderList(filteredEmails);
-  updateFilterInfo(kw);
+  renderList(filtered);
 
-  const hasFilter = kw || activeChip;
-  resetBtn.classList.toggle('hidden', !hasFilter);
-}
-
-function updateFilterInfo(kw) {
   const info = document.getElementById('filter-info');
-  const shown = filteredEmails.length;
-  const total = allEmails.length;
-  if (!kw && !activeChip) { info.textContent = ''; return; }
+  const btn  = document.getElementById('reset-btn');
+  const active = kw || activeChip;
+
+  btn.classList.toggle('hidden', !active);
+
+  if (!active) { info.textContent = ''; return; }
   const parts = [];
   if (kw) parts.push(`"${kw}"`);
   if (activeChip) parts.push(activeChip.split('@')[0]);
-  info.textContent = `${shown} résultat${shown !== 1 ? 's' : ''} sur ${total} — ${parts.join(', ')}`;
+  info.textContent = `${filtered.length} résultat${filtered.length !== 1 ? 's' : ''} — ${parts.join(', ')}`;
 }
 
 function resetFilters() {
   document.getElementById('search-input').value = '';
   activeChip = null;
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  filteredEmails = [...allEmails];
-  renderList(filteredEmails);
+  filtered = [...all];
+  renderList(filtered);
   document.getElementById('filter-info').textContent = '';
   document.getElementById('reset-btn').classList.add('hidden');
 }
 
-// ── Render email list ─────────────────────────────────────────────────────────
+/* ── Email list ────────────────────────── */
 
 function renderList(emails) {
-  const list = document.getElementById('email-list');
+  const list  = document.getElementById('email-list');
   const empty = document.getElementById('no-results');
+
   list.innerHTML = '';
 
   if (emails.length === 0) {
@@ -132,24 +154,25 @@ function renderList(emails) {
   empty.classList.add('hidden');
 
   emails.forEach(email => {
-    const row = document.createElement('div');
+    const row   = document.createElement('div');
+    const color = hashColor(email.from);
+    const init  = initials(email.from);
+    const preview = (email.body || '').substring(0, 90);
+
     row.className = 'email-row unread';
     row.dataset.id = email.id;
-    if (email.id === selectedId) row.classList.add('selected');
-
-    const color = avatarColor(email.from);
-    const init = initials(email.from);
-    const preview = (email.body || '').substring(0, 100);
+    if (email.id === openId) row.classList.add('active');
 
     row.innerHTML = `
-      <div class="avatar" style="background:${color}">${esc(init)}</div>
-      <div class="row-content">
+      <div class="row-avatar" style="background:${color}">${esc(init)}</div>
+      <div class="row-body">
         <div class="row-from">${esc(email.from)}</div>
         <div class="row-subject">${esc(email.subject)}</div>
         <div class="row-preview">${esc(preview)}</div>
       </div>
       <div class="row-meta">
-        <span class="row-time">${fmtTime(email.date)}</span>
+        <span class="row-time">${fmtShortTime(email.date)}</span>
+        <span class="row-dot"></span>
       </div>
     `;
 
@@ -158,54 +181,59 @@ function renderList(emails) {
   });
 }
 
-// ── Reading pane ──────────────────────────────────────────────────────────────
+/* ── Detail panel ──────────────────────── */
 
 function openEmail(email) {
-  selectedId = email.id;
+  openId = email.id;
 
-  // Mark row as selected + read
+  // Update row states
   document.querySelectorAll('.email-row').forEach(r => {
-    r.classList.remove('selected');
+    r.classList.remove('active');
     if (r.dataset.id === email.id) {
-      r.classList.add('selected');
+      r.classList.add('active');
       r.classList.remove('unread');
+      const dot = r.querySelector('.row-dot');
+      if (dot) dot.style.display = 'none';
     }
   });
 
-  const color = avatarColor(email.from);
-  const init = initials(email.from);
+  const color = hashColor(email.from);
+  const init  = initials(email.from);
 
-  document.getElementById('reading-subject').textContent = email.subject;
-  document.getElementById('reading-from').textContent = email.from;
-  document.getElementById('reading-date').textContent = fmtFull(email.date);
-  document.getElementById('reading-body').textContent = email.body || '';
+  document.getElementById('detail-subject').textContent  = email.subject;
+  document.getElementById('detail-from').textContent     = email.from;
+  document.getElementById('detail-when').textContent     = fmtLong(email.date);
+  document.getElementById('detail-message').textContent  = email.body || '';
 
-  const avatar = document.getElementById('reading-avatar');
-  avatar.textContent = init;
-  avatar.style.background = color;
+  const av = document.getElementById('detail-avatar');
+  av.textContent = init;
+  av.style.background = color;
 
-  document.getElementById('reading-empty').classList.add('hidden');
-  document.getElementById('reading-content').classList.remove('hidden');
+  document.getElementById('detail-placeholder').classList.add('hidden');
+  document.getElementById('detail-body').classList.remove('hidden');
 
-  // On mobile: show reading pane
-  const pane = document.querySelector('.reading-pane');
-  pane.style.display = 'flex';
+  // On tablet/mobile: show detail over content
+  const panel = document.querySelector('.detail');
+  panel.style.display = 'flex';
 }
 
-function closeReading() {
-  selectedId = null;
-  document.querySelectorAll('.email-row').forEach(r => r.classList.remove('selected'));
-  document.getElementById('reading-empty').classList.remove('hidden');
-  document.getElementById('reading-content').classList.add('hidden');
+function closeDetail() {
+  openId = null;
+  document.querySelectorAll('.email-row').forEach(r => r.classList.remove('active'));
+  document.getElementById('detail-placeholder').classList.remove('hidden');
+  document.getElementById('detail-body').classList.add('hidden');
 }
 
-// ── Sidebar toggle (mobile) ───────────────────────────────────────────────────
+/* ── Sidebar toggle ────────────────────── */
 
 function toggleSidebar() {
-  document.querySelector('.sidebar').classList.toggle('open');
+  const sb  = document.getElementById('sidebar');
+  const ovl = document.getElementById('overlay');
+  const open = sb.classList.toggle('open');
+  ovl.classList.toggle('hidden', !open);
 }
 
-// ── Load data ─────────────────────────────────────────────────────────────────
+/* ── Init ──────────────────────────────── */
 
 async function init() {
   try {
@@ -213,31 +241,32 @@ async function init() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    allEmails = (data.emails || []).sort((a, b) => new Date(b.date) - new Date(a.date));
-    filteredEmails = [...allEmails];
+    all = (data.emails || []).sort((a, b) => new Date(b.date) - new Date(a.date));
+    filtered = [...all];
 
-    // Header / sidebar
-    const dateStr = fmtDate(data.date || new Date().toISOString());
-    document.getElementById('topbar-date').textContent = dateStr;
-    document.getElementById('sidebar-date').textContent = dateStr;
-    document.getElementById('topbar-count').textContent =
-      `${allEmails.length} email${allEmails.length !== 1 ? 's' : ''}`;
-    document.getElementById('nav-count').textContent = allEmails.length;
+    // Header info
+    const dayStr = fmtDayFull(data.date || new Date().toISOString());
+    document.getElementById('topbar-date').textContent  = dayStr;
+    document.getElementById('sb-date-full').textContent = dayStr;
+    document.getElementById('topbar-pill').textContent  =
+      `${all.length} email${all.length !== 1 ? 's' : ''}`;
+    document.getElementById('nav-count').textContent = all.length;
 
     // AI summary
     document.getElementById('ai-summary').textContent =
       data.summary || 'Aucun résumé disponible.';
 
-    buildChips(allEmails);
-    renderList(allEmails);
+    renderStats(all);
+    buildChips(all);
+    renderList(all);
+
   } catch (err) {
     console.error(err);
     document.getElementById('email-list').innerHTML = `
-      <div style="padding:32px;text-align:center;color:#ef4444;font-size:13px;">
-        Impossible de charger mailstoday.json.<br>
-        <span style="color:#9ca3af;font-size:12px;">Servez la page via un serveur HTTP local.</span>
-      </div>
-    `;
+      <div style="padding:28px 0;text-align:center;font-size:13px;color:#ef4444;">
+        Impossible de charger mailstoday.json<br>
+        <span style="color:#a1a1aa;font-size:12px;">Utilisez un serveur HTTP local (ex: Live Server)</span>
+      </div>`;
     document.getElementById('ai-summary').textContent = 'Données non disponibles.';
   }
 }
