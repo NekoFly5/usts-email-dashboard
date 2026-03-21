@@ -444,10 +444,9 @@ function renderList(emails) {
 
 /* ── Detail panel ──────────────────────── */
 
-function openEmail(email) {
+async function openEmail(email) {
   openId = email.id;
 
-  // Update row states
   document.querySelectorAll('.email-row').forEach(r => {
     r.classList.remove('active');
     if (r.dataset.id === email.id) {
@@ -461,10 +460,10 @@ function openEmail(email) {
   const color = hashColor(email.from);
   const init  = initials(email.from);
 
-  document.getElementById('detail-subject').textContent  = email.subject;
-  document.getElementById('detail-from').textContent     = email.from;
-  document.getElementById('detail-when').textContent     = fmtLong(email.date);
-  document.getElementById('detail-message').textContent  = email.body || '';
+  document.getElementById('detail-subject').textContent = email.subject;
+  document.getElementById('detail-from').textContent    = email.from;
+  document.getElementById('detail-when').textContent    = fmtLong(email.date);
+  document.getElementById('detail-message').textContent = email.body ?? '…';
 
   const av = document.getElementById('detail-avatar');
   av.textContent = init;
@@ -472,10 +471,21 @@ function openEmail(email) {
 
   document.getElementById('detail-placeholder').classList.add('hidden');
   document.getElementById('detail-body').classList.remove('hidden');
+  document.querySelector('.detail').style.display = 'flex';
 
-  // On tablet/mobile: show detail over content
-  const panel = document.querySelector('.detail');
-  panel.style.display = 'flex';
+  // Load body on demand if not already fetched
+  if (email.body === null && GMAIL_CLIENT_ID) {
+    document.getElementById('detail-message').textContent = 'Chargement…';
+    try {
+      const res = await gapi.client.gmail.users.messages.get({
+        userId: 'me', id: email.id, format: 'full',
+      });
+      const full = parseGmailMsg(res.result);
+      email.body = full?.body || '';
+      if (openId === email.id)
+        document.getElementById('detail-message').textContent = email.body;
+    } catch { document.getElementById('detail-message').textContent = '(Impossible de charger le corps)'; }
+  }
 }
 
 function closeDetail() {
@@ -756,6 +766,17 @@ function signOut() {
   closeDetail();
 }
 
+async function fetchBatch(items, fn, batchSize = 10) {
+  const results = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    const chunk = items.slice(i, i + batchSize);
+    const batch = await Promise.all(chunk.map(fn));
+    results.push(...batch);
+    if (i + batchSize < items.length) await new Promise(r => setTimeout(r, 150));
+  }
+  return results;
+}
+
 async function loadFromGmail() {
   try {
     const today = new Date();
@@ -763,26 +784,26 @@ async function loadFromGmail() {
     const m = String(today.getMonth() + 1).padStart(2, '0');
     const d = String(today.getDate()).padStart(2, '0');
 
-    // Fetch last 7 days with pagination
+    // 1. List message IDs
     const msgs = [];
     let pageToken;
     do {
       const res = await gapi.client.gmail.users.messages.list({
-        userId: 'me',
-        q: 'newer_than:7d',
-        maxResults: 100,
+        userId: 'me', q: 'newer_than:7d', maxResults: 100,
         ...(pageToken ? { pageToken } : {}),
       });
       (res.result.messages || []).forEach(m => msgs.push(m));
       pageToken = res.result.nextPageToken;
     } while (pageToken && msgs.length < 300);
 
-    const emails = (await Promise.all(
-      msgs.map(msg =>
-        gapi.client.gmail.users.messages.get({ userId: 'me', id: msg.id, format: 'full' })
-          .then(r => parseGmailMsg(r.result))
-      )
-    )).filter(Boolean).sort((a, b) => new Date(b.date) - new Date(a.date));
+    // 2. Fetch metadata only (no body) — much lighter, avoids 429
+    const metaList = await fetchBatch(msgs, msg =>
+      gapi.client.gmail.users.messages.get({
+        userId: 'me', id: msg.id, format: 'metadata',
+        metadataHeaders: ['From', 'Subject', 'Date'],
+      }).then(r => parseGmailMeta(r.result))
+    );
+    const emails = metaList.filter(Boolean).sort((a, b) => new Date(b.date) - new Date(a.date));
 
     populateUI(emails, `${y}-${m}-${d}`, autoSummary(emails));
   } catch (err) {
@@ -803,12 +824,11 @@ async function loadFromGmail() {
   }
 }
 
-function parseGmailMsg(msg) {
+function parseGmailMeta(msg) {
   try {
     const hdr = msg.payload.headers || [];
     const h   = name => hdr.find(x => x.name.toLowerCase() === name)?.value || '';
     const fromRaw = h('from');
-    // internalDate is a reliable ms timestamp provided by Gmail API
     const date = msg.internalDate
       ? new Date(Number(msg.internalDate)).toISOString()
       : new Date(h('date')).toISOString();
@@ -817,7 +837,25 @@ function parseGmailMsg(msg) {
       from:    fromRaw.match(/<(.+)>/)?.[1] || fromRaw,
       subject: h('subject') || '(Sans objet)',
       date,
-      body:    extractTextBody(msg.payload).replace(/\s+/g, ' ').trim().slice(0, 400),
+      body:    null, // loaded on demand
+    };
+  } catch { return null; }
+}
+
+function parseGmailMsg(msg) {
+  try {
+    const hdr = msg.payload.headers || [];
+    const h   = name => hdr.find(x => x.name.toLowerCase() === name)?.value || '';
+    const fromRaw = h('from');
+    const date = msg.internalDate
+      ? new Date(Number(msg.internalDate)).toISOString()
+      : new Date(h('date')).toISOString();
+    return {
+      id:      msg.id,
+      from:    fromRaw.match(/<(.+)>/)?.[1] || fromRaw,
+      subject: h('subject') || '(Sans objet)',
+      date,
+      body:    extractTextBody(msg.payload).replace(/\s+/g, ' ').trim(),
     };
   } catch { return null; }
 }
