@@ -544,6 +544,7 @@ async function onAuthSuccess() {
     document.getElementById('sb-user').classList.remove('hidden');
   } catch (e) { console.warn('Profile fetch failed', e); }
 
+  setStatus('gmail');
   document.getElementById('email-list').innerHTML =
     '<div class="list-loading"><div class="spinner"></div>Chargement des emails…</div>';
   await loadFromGmail();
@@ -593,6 +594,8 @@ function signOut() {
   all = []; filtered = []; openId = null;
   document.getElementById('sb-signout').classList.add('hidden');
   document.getElementById('sb-user').classList.add('hidden');
+  document.getElementById('sb-status-dot').style.background = '';
+  document.getElementById('sb-status-label').textContent = '…';
   document.getElementById('auth-wall').classList.remove('hidden');
   document.getElementById('email-list').innerHTML = '';
   document.getElementById('ai-summary').textContent = 'En attente de connexion…';
@@ -689,6 +692,21 @@ function autoSummary(emails) {
 
 /* ── Init ──────────────────────────────── */
 
+function setStatus(mode) {
+  const dot   = document.getElementById('sb-status-dot');
+  const label = document.getElementById('sb-status-label');
+  if (mode === 'gmail') {
+    dot.style.background = '#22c55e';
+    label.textContent = 'Gmail · connecté';
+  } else if (mode === 'n8n') {
+    dot.style.background = '#22c55e';
+    label.textContent = 'n8n · synchronisé';
+  } else {
+    dot.style.background = '#f59e0b';
+    label.textContent = 'n8n · non connecté';
+  }
+}
+
 function populateUI(emails, dateStr, summary) {
   all = emails;
   filtered = sortEmails([...all]);
@@ -717,6 +735,8 @@ async function loadFromJson() {
     const data = await res.json();
     const emails = (data.emails || []).sort((a, b) => new Date(b.date) - new Date(a.date));
     const dateStr = data.date || new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+    setStatus(dateStr === today ? 'n8n' : 'none');
     populateUI(emails, dateStr, data.summary);
   } catch (err) {
     console.error(err);
