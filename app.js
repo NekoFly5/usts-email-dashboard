@@ -625,7 +625,16 @@ function b64ToUtf8(b64) {
 function extractTextBody(payload) {
   if (payload.mimeType === 'text/plain' && payload.body?.data)
     return b64ToUtf8(payload.body.data);
-  for (const part of payload.parts || []) {
+  if (payload.mimeType === 'text/html' && payload.body?.data) {
+    const html = b64ToUtf8(payload.body.data);
+    return html.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ')
+               .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+  }
+  // Prioritise text/plain parts over text/html
+  const parts = payload.parts || [];
+  const plain = parts.find(p => p.mimeType === 'text/plain');
+  if (plain) return extractTextBody(plain);
+  for (const part of parts) {
     const txt = extractTextBody(part);
     if (txt) return txt;
   }
