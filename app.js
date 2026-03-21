@@ -798,11 +798,24 @@ function signOut() {
 
 let _allLoaded = false; // true once 7-day emails are fetched
 
-async function fetchBatch(items, fn, batchSize = 5, delay = 300) {
+async function fetchWithRetry(fn, retries = 3, baseDelay = 1000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const status = err?.status || err?.result?.error?.code;
+      if (status === 429 && i < retries - 1) {
+        await new Promise(r => setTimeout(r, baseDelay * (i + 1)));
+      } else throw err;
+    }
+  }
+}
+
+async function fetchBatch(items, fn, batchSize = 3, delay = 500) {
   const results = [];
   for (let i = 0; i < items.length; i += batchSize) {
     const chunk = items.slice(i, i + batchSize);
-    const batch = await Promise.all(chunk.map(fn));
+    const batch = await Promise.all(chunk.map(item => fetchWithRetry(() => fn(item))));
     results.push(...batch);
     if (i + batchSize < items.length) await new Promise(r => setTimeout(r, delay));
   }
