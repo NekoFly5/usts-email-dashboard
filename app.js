@@ -863,10 +863,21 @@ async function loadFromGmail(query = 'newer_than:1d', mergeWithExisting = false)
   } catch (err) {
     console.error(err);
     const status = err?.status || err?.result?.error?.code;
-    if (status === 401 || status === 403) {
-      // Token invalide ou scopes insuffisants — forcer reconnexion
-      sessionStorage.removeItem('gmail-authed');
+    if (status === 403) {
+      // Scopes insuffisants — forcer le consentement explicite
       gapi.client.setToken(null);
+      sessionStorage.removeItem('gmail-token');
+      sessionStorage.removeItem('gmail-profile');
+      if (_tokenClient) {
+        _tokenClient.requestAccessToken({ prompt: 'consent' });
+        return;
+      }
+      showAuthWall();
+      return;
+    }
+    if (status === 401) {
+      gapi.client.setToken(null);
+      sessionStorage.removeItem('gmail-token');
       showAuthWall();
       return;
     }
