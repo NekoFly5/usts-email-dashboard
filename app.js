@@ -808,11 +808,15 @@ function parseGmailMsg(msg) {
     const hdr = msg.payload.headers || [];
     const h   = name => hdr.find(x => x.name.toLowerCase() === name)?.value || '';
     const fromRaw = h('from');
+    // internalDate is a reliable ms timestamp provided by Gmail API
+    const date = msg.internalDate
+      ? new Date(Number(msg.internalDate)).toISOString()
+      : new Date(h('date')).toISOString();
     return {
       id:      msg.id,
       from:    fromRaw.match(/<(.+)>/)?.[1] || fromRaw,
       subject: h('subject') || '(Sans objet)',
-      date:    new Date(h('date')).toISOString(),
+      date,
       body:    extractTextBody(msg.payload).replace(/\s+/g, ' ').trim().slice(0, 400),
     };
   } catch { return null; }

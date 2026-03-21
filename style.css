@@ -770,6 +770,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
   animation: slideIn .18s ease;
 }
 
