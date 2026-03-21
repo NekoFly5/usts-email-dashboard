@@ -549,6 +549,7 @@ function toggleSidebarCollapse() {
 let _gapiReady = false;
 let _gisReady  = false;
 let _tokenClient;
+let _consentAttempted = false;
 
 function gapiLoaded() { _gapiReady = true; }
 function gisLoaded()  { _gisReady  = true; }
@@ -750,8 +751,7 @@ function initGmailAuth() {
       const btn = document.getElementById('auth-btn');
       btn.disabled = true;
       btn.textContent = 'Connexion en cours…';
-      // Use 'select_account' so Google doesn't force re-consent if already granted
-      _tokenClient.requestAccessToken({ prompt: 'select_account' });
+      _tokenClient.requestAccessToken({ prompt: 'consent' });
       // Re-enable after 8s in case the popup is closed without response
       setTimeout(() => {
         _authPending = false;
@@ -783,6 +783,7 @@ function signOut() {
   gapi.client.setToken(null);
   sessionStorage.removeItem('gmail-token');
   sessionStorage.removeItem('gmail-profile');
+  _consentAttempted = false;
   all = []; filtered = []; openId = null;
   document.getElementById('sb-signout').classList.add('hidden');
   document.getElementById('sb-user').classList.add('hidden');
@@ -859,20 +860,32 @@ async function loadFromGmail(query = 'newer_than:1d', mergeWithExisting = false)
     }
 
     emails.sort((a, b) => new Date(b.date) - new Date(a.date));
+    _consentAttempted = false;
     populateUI(emails, `${y}-${m}-${d}`, autoSummary(emails.filter(e => isToday(e.date))));
   } catch (err) {
     console.error(err);
     const status = err?.status || err?.result?.error?.code;
     if (status === 403) {
-      // Scopes insuffisants — forcer le consentement explicite
       gapi.client.setToken(null);
       sessionStorage.removeItem('gmail-token');
       sessionStorage.removeItem('gmail-profile');
-      if (_tokenClient) {
+      if (_tokenClient && !_consentAttempted) {
+        // Première tentative : forcer le consentement explicite
+        _consentAttempted = true;
         _tokenClient.requestAccessToken({ prompt: 'consent' });
         return;
       }
+      // Consent déjà tenté ou pas de tokenClient — afficher l'erreur
+      _consentAttempted = false;
       showAuthWall();
+      document.getElementById('email-list').innerHTML = `
+        <div style="padding:28px 0;text-align:center;font-size:13px;color:#ef4444;">
+          Accès Gmail refusé (403)<br>
+          <span style="color:#a1a1aa;font-size:12px;">
+            Vérifiez que l'API Gmail est activée dans Google Cloud Console<br>
+            et que les scopes gmail.readonly sont configurés dans l'écran de consentement.
+          </span>
+        </div>`;
       return;
     }
     if (status === 401) {
