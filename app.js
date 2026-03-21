@@ -523,16 +523,60 @@ let _tokenClient;
 function gapiLoaded() { _gapiReady = true; }
 function gisLoaded()  { _gisReady  = true; }
 
+let _linesRaf = null;
+function startAuthLines() {
+  const canvas = document.getElementById('auth-lines');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const pts = Array.from({ length: 38 }, () => ({
+    x: Math.random(), y: Math.random(),
+    vx: (Math.random() - 0.5) * 0.00018,
+    vy: (Math.random() - 0.5) * 0.00018,
+  }));
+  const DIST = 0.22;
+  function draw() {
+    const W = canvas.offsetWidth, H = canvas.offsetHeight;
+    canvas.width = W; canvas.height = H;
+    ctx.clearRect(0, 0, W, H);
+    pts.forEach(p => {
+      p.x = (p.x + p.vx + 1) % 1;
+      p.y = (p.y + p.vy + 1) % 1;
+    });
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < DIST) {
+          ctx.beginPath();
+          ctx.moveTo(pts[i].x * W, pts[i].y * H);
+          ctx.lineTo(pts[j].x * W, pts[j].y * H);
+          ctx.strokeStyle = `rgba(99,102,241,${1 - d / DIST})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+    }
+    _linesRaf = requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+function stopAuthLines() {
+  if (_linesRaf) { cancelAnimationFrame(_linesRaf); _linesRaf = null; }
+}
+
 function showAuthWall() {
   document.getElementById('auth-wall').classList.remove('hidden');
   document.getElementById('sidebar').classList.add('auth-hidden');
   document.getElementById('email-list').innerHTML = '';
   document.getElementById('ai-summary').textContent = 'En attente de connexion…';
+  startAuthLines();
 }
 
 function hideAuthWall() {
   document.getElementById('auth-wall').classList.add('hidden');
   document.getElementById('sidebar').classList.remove('auth-hidden');
+  stopAuthLines();
 }
 
 function waitForGApis() {
