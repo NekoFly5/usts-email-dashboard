@@ -555,6 +555,11 @@ body {
   white-space: nowrap;
 }
 
+.row-star {
+  color: #eab308;
+  flex-shrink: 0;
+}
+
 .row-dot {
   width: 7px;
   height: 7px;
