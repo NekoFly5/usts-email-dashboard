@@ -2,6 +2,16 @@
    Mail Summary — app.js
    ═══════════════════════════════════════════ */
 
+/* ════════════════════════════════════════════
+   CONFIG — Gmail OAuth2
+   Créer un Client ID sur console.cloud.google.com :
+     APIs & Services > Identifiants > ID client OAuth 2.0 (Application Web)
+     Origines JS autorisées : http://localhost:5500
+                              https://nekofly5.github.io
+   Laisser vide pour utiliser mailstoday.json
+   ════════════════════════════════════════════ */
+const GMAIL_CLIENT_ID = '';
+
 const PALETTE = [
   '#6366f1','#8b5cf6','#a855f7','#ec4899',
   '#ef4444','#f97316','#eab308','#22c55e',
@@ -489,38 +499,149 @@ function toggleSidebar() {
   ovl.classList.toggle('hidden', !open);
 }
 
+/* ── Gmail API ─────────────────────────── */
+
+let _gapiReady = false;
+let _gisReady  = false;
+let _tokenClient;
+
+function gapiLoaded() { _gapiReady = true; }
+function gisLoaded()  { _gisReady  = true; }
+
+function waitForGApis() {
+  return new Promise(resolve => {
+    const t = setInterval(() => {
+      if (_gapiReady && _gisReady) { clearInterval(t); resolve(); }
+    }, 30);
+  });
+}
+
+function initGmailAuth() {
+  gapi.load('client', async () => {
+    await gapi.client.init({
+      discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest'],
+    });
+
+    _tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GMAIL_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/gmail.readonly',
+      callback: async resp => {
+        if (resp.error) { console.error(resp); return; }
+        document.getElementById('auth-wall').classList.add('hidden');
+        document.getElementById('email-list').innerHTML =
+          '<div class="list-loading"><div class="spinner"></div>Chargement des emails…</div>';
+        await loadFromGmail();
+      },
+    });
+
+    document.getElementById('auth-wall').classList.remove('hidden');
+    document.getElementById('email-list').innerHTML = '';
+    document.getElementById('ai-summary').textContent = 'En attente de connexion…';
+    document.getElementById('auth-btn').addEventListener('click', () =>
+      _tokenClient.requestAccessToken({ prompt: 'consent' })
+    );
+  });
+}
+
+async function loadFromGmail() {
+  try {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+
+    const listRes = await gapi.client.gmail.users.messages.list({
+      userId: 'me',
+      q: `after:${y}/${m}/${d}`,
+      maxResults: 50,
+    });
+
+    const msgs = listRes.result.messages || [];
+    const emails = (await Promise.all(
+      msgs.map(msg =>
+        gapi.client.gmail.users.messages.get({ userId: 'me', id: msg.id, format: 'full' })
+          .then(r => parseGmailMsg(r.result))
+      )
+    )).filter(Boolean).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    populateUI(emails, `${y}-${m}-${d}`, autoSummary(emails));
+  } catch (err) {
+    console.error(err);
+    document.getElementById('email-list').innerHTML = `
+      <div style="padding:28px 0;text-align:center;font-size:13px;color:#ef4444;">
+        Erreur Gmail<br>
+        <span style="color:#a1a1aa;font-size:12px;">${esc(String(err.message || err))}</span>
+      </div>`;
+  }
+}
+
+function parseGmailMsg(msg) {
+  try {
+    const hdr = msg.payload.headers || [];
+    const h   = name => hdr.find(x => x.name.toLowerCase() === name)?.value || '';
+    const fromRaw = h('from');
+    return {
+      id:      msg.id,
+      from:    fromRaw.match(/<(.+)>/)?.[1] || fromRaw,
+      subject: h('subject') || '(Sans objet)',
+      date:    new Date(h('date')).toISOString(),
+      body:    extractTextBody(msg.payload).replace(/\s+/g, ' ').trim().slice(0, 400),
+    };
+  } catch { return null; }
+}
+
+function extractTextBody(payload) {
+  if (payload.mimeType === 'text/plain' && payload.body?.data)
+    return atob(payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+  for (const part of payload.parts || []) {
+    const txt = extractTextBody(part);
+    if (txt) return txt;
+  }
+  return '';
+}
+
+function autoSummary(emails) {
+  if (!emails.length) return "Aucun email reçu aujourd'hui.";
+  const senders = new Set(emails.map(e => e.from)).size;
+  const urgent  = emails.filter(e =>
+    IMPORTANT_KEYWORDS.some(k => (e.subject + ' ' + e.body).toLowerCase().includes(k))
+  ).length;
+  let s = `${emails.length} email${emails.length > 1 ? 's' : ''} reçu${emails.length > 1 ? 's' : ''} aujourd'hui, de ${senders} expéditeur${senders > 1 ? 's' : ''} différent${senders > 1 ? 's' : ''}.`;
+  if (urgent) s += ` ${urgent} message${urgent > 1 ? 's semblent' : ' semble'} urgent${urgent > 1 ? 's' : ''}.`;
+  return s;
+}
+
 /* ── Init ──────────────────────────────── */
 
-async function init() {
-  const savedTheme = localStorage.getItem('theme') || 'light';
-  document.documentElement.setAttribute('data-theme', savedTheme);
-  updateThemeBtn(savedTheme);
+function populateUI(emails, dateStr, summary) {
+  all = emails;
+  filtered = sortEmails([...all]);
 
+  const [y, m, d] = dateStr.split('-');
+  const dayStr = new Date(+y, +m - 1, +d).toLocaleDateString('fr-FR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
+
+  document.getElementById('topbar-date').textContent  = dayStr;
+  document.getElementById('sb-date-full').textContent = dayStr;
+  document.getElementById('topbar-pill').textContent  = `${all.length} email${all.length !== 1 ? 's' : ''}`;
+  document.getElementById('nav-count').textContent    = all.length;
+  document.getElementById('ai-summary').textContent   = summary || 'Aucun résumé disponible.';
+
+  renderStats(all);
+  buildChips(all);
+  buildSortChips();
+  renderList(filtered);
+}
+
+async function loadFromJson() {
   try {
     const res = await fetch('mailstoday.json');
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-
-    all = (data.emails || []).sort((a, b) => new Date(b.date) - new Date(a.date));
-    filtered = [...all];
-
-    // Header info
-    const dayStr = fmtDayFull(data.date || new Date().toISOString());
-    document.getElementById('topbar-date').textContent  = dayStr;
-    document.getElementById('sb-date-full').textContent = dayStr;
-    document.getElementById('topbar-pill').textContent  =
-      `${all.length} email${all.length !== 1 ? 's' : ''}`;
-    document.getElementById('nav-count').textContent = all.length;
-
-    // AI summary
-    document.getElementById('ai-summary').textContent =
-      data.summary || 'Aucun résumé disponible.';
-
-    renderStats(all);
-    buildChips(all);
-    buildSortChips();
-    renderList(sortEmails(all));
-
+    const emails = (data.emails || []).sort((a, b) => new Date(b.date) - new Date(a.date));
+    const dateStr = data.date || new Date().toISOString().split('T')[0];
+    populateUI(emails, dateStr, data.summary);
   } catch (err) {
     console.error(err);
     document.getElementById('email-list').innerHTML = `
@@ -529,6 +650,19 @@ async function init() {
         <span style="color:#a1a1aa;font-size:12px;">Utilisez un serveur HTTP local (ex: Live Server)</span>
       </div>`;
     document.getElementById('ai-summary').textContent = 'Données non disponibles.';
+  }
+}
+
+async function init() {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  updateThemeBtn(savedTheme);
+
+  if (GMAIL_CLIENT_ID) {
+    await waitForGApis();
+    initGmailAuth();
+  } else {
+    await loadFromJson();
   }
 }
 
