@@ -81,8 +81,17 @@ function fmtDayFull(iso) {
 
 /* ── Views ──────────────────────────────── */
 
+function isToday(iso) {
+  const d = new Date(iso), n = new Date();
+  return d.getFullYear() === n.getFullYear() &&
+         d.getMonth()    === n.getMonth()    &&
+         d.getDate()     === n.getDate();
+}
+
 function getViewEmails() {
   switch (currentView) {
+    case 'aujourdhui':
+      return all.filter(e => !getState(e.id).deleted && !getState(e.id).archived && isToday(e.date));
     case 'importants':
       return all.filter(e => {
         const s = getState(e.id);
@@ -754,13 +763,20 @@ async function loadFromGmail() {
     const m = String(today.getMonth() + 1).padStart(2, '0');
     const d = String(today.getDate()).padStart(2, '0');
 
-    const listRes = await gapi.client.gmail.users.messages.list({
-      userId: 'me',
-      q: `after:${y}/${m}/${d}`,
-      maxResults: 50,
-    });
+    // Fetch last 7 days with pagination
+    const msgs = [];
+    let pageToken;
+    do {
+      const res = await gapi.client.gmail.users.messages.list({
+        userId: 'me',
+        q: 'newer_than:7d',
+        maxResults: 100,
+        ...(pageToken ? { pageToken } : {}),
+      });
+      (res.result.messages || []).forEach(m => msgs.push(m));
+      pageToken = res.result.nextPageToken;
+    } while (pageToken && msgs.length < 300);
 
-    const msgs = listRes.result.messages || [];
     const emails = (await Promise.all(
       msgs.map(msg =>
         gapi.client.gmail.users.messages.get({ userId: 'me', id: msg.id, format: 'full' })
@@ -867,8 +883,9 @@ function populateUI(emails, dateStr, summary) {
 
   document.getElementById('topbar-date').textContent  = dayStr;
   document.getElementById('sb-date-full').textContent = dayStr;
-  document.getElementById('topbar-pill').textContent  = `${all.length} email${all.length !== 1 ? 's' : ''}`;
-  document.getElementById('nav-count').textContent    = all.length;
+  const todayCount = all.filter(e => isToday(e.date)).length;
+  document.getElementById('topbar-pill').textContent  = `${todayCount} email${todayCount !== 1 ? 's' : ''} aujourd'hui`;
+  document.getElementById('nav-count').textContent    = todayCount;
   document.getElementById('ai-summary').textContent   = summary || 'Aucun résumé disponible.';
 
   renderStats(all);
