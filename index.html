@@ -3,68 +3,133 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Email Daily Summary</title>
+  <title>Mail Summary</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="app">
-    <header class="header">
-      <div class="header-content">
-        <div class="header-left">
-          <h1>📬 Email Summary</h1>
-          <span id="date-display" class="date-badge"></span>
-        </div>
-        <div class="header-right">
-          <span id="email-count" class="count-badge"></span>
-        </div>
+  <div class="shell">
+
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        <span>MailSummary</span>
       </div>
-    </header>
 
-    <main class="main">
-      <!-- Résumé IA -->
-      <section class="summary-section card">
-        <h2 class="section-title">
-          <span class="icon">🤖</span> Résumé IA de la journée
-        </h2>
-        <p id="ai-summary" class="summary-text">Chargement...</p>
-      </section>
+      <nav class="sidebar-nav">
+        <a class="nav-item active" href="#">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Aujourd'hui
+          <span class="nav-badge" id="nav-count">0</span>
+        </a>
+        <a class="nav-item" href="#">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          Tous les mails
+        </a>
+        <a class="nav-item" href="#">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Importants
+        </a>
+        <a class="nav-item" href="#">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+          Archive
+        </a>
+      </nav>
 
-      <!-- Filtres -->
-      <section class="filters-section">
-        <div class="filters-row">
-          <div class="search-box">
-            <span class="search-icon">🔍</span>
-            <input
-              type="text"
-              id="search-input"
-              class="search-input"
-              placeholder="Rechercher par mot-clé, expéditeur..."
-              oninput="applyFilters()"
-            />
+      <div class="sidebar-footer">
+        <div class="sidebar-date" id="sidebar-date"></div>
+      </div>
+    </aside>
+
+    <!-- ── Main content ── -->
+    <div class="content">
+
+      <!-- Top bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="menu-btn" onclick="toggleSidebar()" aria-label="Menu">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <h1 class="topbar-title">Résumé du jour</h1>
+          <span class="topbar-date" id="topbar-date"></span>
+        </div>
+        <div class="topbar-right">
+          <span class="topbar-count" id="topbar-count"></span>
+        </div>
+      </header>
+
+      <div class="page">
+
+        <!-- AI Summary card -->
+        <section class="summary-card">
+          <div class="summary-header">
+            <div class="summary-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+              Analyse IA
+            </div>
           </div>
-          <select id="sender-filter" class="filter-select" onchange="applyFilters()">
-            <option value="">Tous les expéditeurs</option>
-          </select>
-          <button class="reset-btn" onclick="resetFilters()">✕ Réinitialiser</button>
-        </div>
-        <div id="filter-info" class="filter-info"></div>
-      </section>
+          <p class="summary-text" id="ai-summary">Chargement du résumé...</p>
+        </section>
 
-      <!-- Liste des emails -->
-      <section class="emails-section">
-        <div id="email-list" class="email-list">
-          <div class="loading">Chargement des emails...</div>
+        <!-- Filters -->
+        <div class="filters">
+          <div class="search-wrap">
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="search-input" class="search-input" placeholder="Rechercher..." oninput="applyFilters()" />
+          </div>
+          <div class="filter-chips" id="filter-chips"></div>
+          <button class="reset-btn hidden" id="reset-btn" onclick="resetFilters()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Effacer
+          </button>
         </div>
-        <div id="no-results" class="no-results hidden">
-          <span>😕</span>
-          <p>Aucun email ne correspond à votre recherche.</p>
-        </div>
-      </section>
-    </main>
 
-    <footer class="footer">
-      <p>Données fournies par le workflow n8n · <span id="footer-date"></span></p>
-    </footer>
+        <!-- Filter info -->
+        <div class="filter-info" id="filter-info"></div>
+
+        <!-- Email list -->
+        <div class="email-list" id="email-list">
+          <div class="state-loading">
+            <div class="spinner"></div>
+            <span>Chargement des emails...</span>
+          </div>
+        </div>
+
+        <div class="no-results hidden" id="no-results">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <p>Aucun résultat pour cette recherche.</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Reading pane ── -->
+    <div class="reading-pane" id="reading-pane">
+      <div class="reading-empty" id="reading-empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        <p>Sélectionnez un email</p>
+      </div>
+      <div class="reading-content hidden" id="reading-content">
+        <div class="reading-header">
+          <button class="close-btn" onclick="closeReading()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <h2 class="reading-subject" id="reading-subject"></h2>
+        </div>
+        <div class="reading-meta">
+          <div class="reading-avatar" id="reading-avatar"></div>
+          <div class="reading-info">
+            <span class="reading-from" id="reading-from"></span>
+            <span class="reading-date" id="reading-date"></span>
+          </div>
+        </div>
+        <div class="reading-body" id="reading-body"></div>
+      </div>
+    </div>
+
   </div>
 
   <script src="app.js"></script>
