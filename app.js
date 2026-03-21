@@ -13,6 +13,14 @@ let filtered = [];
 let activeChip = null;
 let openId = null;
 let currentView = 'aujourdhui';
+let currentSort = 'date-desc';
+
+const SORT_OPTIONS = [
+  { value: 'date-desc',   label: 'Plus récent' },
+  { value: 'date-asc',    label: 'Plus ancien' },
+  { value: 'sender-asc',  label: 'Exp. A–Z' },
+  { value: 'subject-asc', label: 'Objet A–Z' },
+];
 
 const IMPORTANT_KEYWORDS = ['urgent', 'important', 'priorité', 'action requise', 'asap'];
 
@@ -270,6 +278,7 @@ function buildChips(emails) {
   const wrap = document.getElementById('filter-chips');
   const senders = [...new Set(emails.map(e => e.from))].sort();
   wrap.innerHTML = '';
+  document.getElementById('filter-sep')?.classList.toggle('hidden', senders.length === 0);
   senders.forEach(s => {
     const btn = document.createElement('button');
     btn.className = 'chip';
@@ -288,14 +297,30 @@ function buildChips(emails) {
 /* ── Filters & sort ────────────────────── */
 
 function sortEmails(emails) {
-  const sort = document.getElementById('sort-select')?.value || 'date-desc';
   const arr = [...emails];
-  switch (sort) {
+  switch (currentSort) {
     case 'date-asc':    return arr.sort((a, b) => new Date(a.date) - new Date(b.date));
     case 'sender-asc':  return arr.sort((a, b) => a.from.localeCompare(b.from, 'fr'));
     case 'subject-asc': return arr.sort((a, b) => a.subject.localeCompare(b.subject, 'fr'));
     default:            return arr.sort((a, b) => new Date(b.date) - new Date(a.date));
   }
+}
+
+function buildSortChips() {
+  const wrap = document.getElementById('sort-chips');
+  wrap.innerHTML = '';
+  SORT_OPTIONS.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'sort-chip' + (currentSort === opt.value ? ' active' : '');
+    btn.textContent = opt.label;
+    btn.addEventListener('click', () => {
+      currentSort = opt.value;
+      wrap.querySelectorAll('.sort-chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      applyFilters();
+    });
+    wrap.appendChild(btn);
+  });
 }
 
 function applyFilters() {
@@ -493,7 +518,8 @@ async function init() {
 
     renderStats(all);
     buildChips(all);
-    renderList(all);
+    buildSortChips();
+    renderList(sortEmails(all));
 
   } catch (err) {
     console.error(err);

@@ -100,15 +100,8 @@
             <input id="search-input" class="filter-search" type="text" placeholder="Rechercher parmi les mails…" oninput="applyFilters()" autocomplete="off" />
           </div>
           <div class="filter-chips" id="filter-chips"></div>
-          <div class="sort-wrap">
-            <svg class="sort-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-            <select id="sort-select" class="sort-select" onchange="applyFilters()">
-              <option value="date-desc">Plus récent</option>
-              <option value="date-asc">Plus ancien</option>
-              <option value="sender-asc">Expéditeur A-Z</option>
-              <option value="subject-asc">Objet A-Z</option>
-            </select>
-          </div>
+          <div class="filter-sep hidden" id="filter-sep"></div>
+          <div class="sort-chips" id="sort-chips"></div>
           <button class="filter-clear hidden" id="reset-btn" onclick="resetFilters()">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             Effacer
