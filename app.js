@@ -605,8 +605,13 @@ function stopAuthLines() {
 function showAuthWall() {
   document.getElementById('auth-wall').classList.remove('hidden');
   document.getElementById('sidebar').classList.add('auth-hidden');
+  document.getElementById('sb-signout').classList.add('hidden');
+  document.getElementById('sb-user').classList.add('hidden');
   document.getElementById('email-list').innerHTML = '';
   document.getElementById('ai-summary').textContent = 'En attente de connexion…';
+  // Show "Changer de compte" only if a previous session existed
+  const sw = document.getElementById('auth-switch');
+  if (sw) sw.classList.toggle('hidden', !sessionStorage.getItem('gmail-authed'));
   startAuthLines();
 }
 
@@ -658,7 +663,7 @@ function initGmailAuth() {
 
     _tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: GMAIL_CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/gmail.readonly profile email',
+      scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
       callback: async resp => {
         if (resp.error) { showAuthWall(); return; }
         await onAuthSuccess();
