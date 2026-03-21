@@ -116,6 +116,33 @@ function refreshView() {
   applyFilters();
 }
 
+let toastTimeout = null;
+
+function showToast(message, undoFn) {
+  const existing = document.getElementById('toast');
+  if (existing) { clearTimeout(toastTimeout); existing.remove(); }
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.id = 'toast';
+  toast.innerHTML = `<span class="toast-msg">${esc(message)}</span><button class="toast-undo">Annuler</button>`;
+
+  toast.querySelector('.toast-undo').addEventListener('click', () => {
+    clearTimeout(toastTimeout);
+    undoFn();
+    refreshView();
+    toast.classList.add('toast-out');
+    setTimeout(() => toast.remove(), 200);
+  });
+
+  document.body.appendChild(toast);
+
+  toastTimeout = setTimeout(() => {
+    toast.classList.add('toast-out');
+    setTimeout(() => toast.remove(), 200);
+  }, 4000);
+}
+
 function closeContextMenu() {
   const m = document.getElementById('ctx-menu');
   if (m) m.remove();
@@ -149,14 +176,22 @@ function showContextMenu(email, event) {
       label:  s.archived ? 'Désarchiver' : 'Archiver',
       icon:   iArchive,
       cls:    s.archived ? 'active-state' : '',
-      action: () => setState(email.id, { archived: !s.archived, deleted: false }),
+      action: () => {
+        const prev = { ...getState(email.id) };
+        setState(email.id, { archived: !s.archived, deleted: false });
+        showToast(s.archived ? 'Email désarchivé' : 'Email archivé', () => setState(email.id, prev));
+      },
     },
     'sep',
     {
       label:  s.deleted ? 'Restaurer' : 'Mettre à la corbeille',
       icon:   s.deleted ? iRestore : iTrash,
       cls:    s.deleted ? '' : 'danger',
-      action: () => setState(email.id, { deleted: !s.deleted, archived: false }),
+      action: () => {
+        const prev = { ...getState(email.id) };
+        setState(email.id, { deleted: !s.deleted, archived: false });
+        showToast(s.deleted ? 'Email restauré' : 'Déplacé dans la corbeille', () => setState(email.id, prev));
+      },
     },
   ];
 
