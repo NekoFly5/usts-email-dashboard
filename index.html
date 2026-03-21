@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Email Daily Summary</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-content">
+        <div class="header-left">
+          <h1>📬 Email Summary</h1>
+          <span id="date-display" class="date-badge"></span>
+        </div>
+        <div class="header-right">
+          <span id="email-count" class="count-badge"></span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- Résumé IA -->
+      <section class="summary-section card">
+        <h2 class="section-title">
+          <span class="icon">🤖</span> Résumé IA de la journée
+        </h2>
+        <p id="ai-summary" class="summary-text">Chargement...</p>
+      </section>
+
+      <!-- Filtres -->
+      <section class="filters-section">
+        <div class="filters-row">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input
+              type="text"
+              id="search-input"
+              class="search-input"
+              placeholder="Rechercher par mot-clé, expéditeur..."
+              oninput="applyFilters()"
+            />
+          </div>
+          <select id="sender-filter" class="filter-select" onchange="applyFilters()">
+            <option value="">Tous les expéditeurs</option>
+          </select>
+          <button class="reset-btn" onclick="resetFilters()">✕ Réinitialiser</button>
+        </div>
+        <div id="filter-info" class="filter-info"></div>
+      </section>
+
+      <!-- Liste des emails -->
+      <section class="emails-section">
+        <div id="email-list" class="email-list">
+          <div class="loading">Chargement des emails...</div>
+        </div>
+        <div id="no-results" class="no-results hidden">
+          <span>😕</span>
+          <p>Aucun email ne correspond à votre recherche.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Données fournies par le workflow n8n · <span id="footer-date"></span></p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
