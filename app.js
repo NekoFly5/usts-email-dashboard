@@ -12,6 +12,9 @@ let all = [];
 let filtered = [];
 let activeChip = null;
 let openId = null;
+let currentView = 'aujourdhui';
+
+const IMPORTANT_KEYWORDS = ['urgent', 'important', 'priorité', 'action requise', 'asap'];
 
 /* ── Utils ─────────────────────────────── */
 
@@ -45,6 +48,57 @@ function fmtDayFull(iso) {
   return new Date(iso).toLocaleDateString('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
+}
+
+/* ── Views ──────────────────────────────── */
+
+function getViewEmails() {
+  switch (currentView) {
+    case 'importants':
+      return all.filter(e => {
+        const text = (e.subject + ' ' + (e.body || '')).toLowerCase();
+        return IMPORTANT_KEYWORDS.some(k => text.includes(k));
+      });
+    case 'archive':
+      return all.filter(e => e.archived === true);
+    case 'corbeille':
+      return all.filter(e => e.deleted === true);
+    default:
+      return all;
+  }
+}
+
+function setView(el, view) {
+  currentView = view;
+
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+
+  const titles = {
+    'aujourdhui': "Résumé du jour",
+    'tous':       "Tous les mails",
+    'importants': "Importants",
+    'archive':    "Archive",
+    'corbeille':  "Corbeille",
+  };
+  document.getElementById('topbar-title').textContent = titles[view] || view;
+
+  const showMeta = view === 'aujourdhui';
+  document.getElementById('stats-strip').style.display   = showMeta ? '' : 'none';
+  document.querySelector('.summary-block').style.display = showMeta ? '' : 'none';
+
+  activeChip = null;
+  document.getElementById('search-input').value = '';
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  document.getElementById('filter-info').textContent = '';
+  document.getElementById('reset-btn').classList.add('hidden');
+
+  closeDetail();
+
+  const viewEmails = getViewEmails();
+  filtered = [...viewEmails];
+  buildChips(viewEmails);
+  renderList(viewEmails);
 }
 
 /* ── Stats strip ───────────────────────── */
@@ -104,8 +158,9 @@ function buildChips(emails) {
 
 function applyFilters() {
   const kw = document.getElementById('search-input').value.trim().toLowerCase();
+  const base = getViewEmails();
 
-  filtered = all.filter(e => {
+  filtered = base.filter(e => {
     const okSender = !activeChip || e.from === activeChip;
     const okKw = !kw
       || e.from.toLowerCase().includes(kw)
@@ -133,8 +188,9 @@ function resetFilters() {
   document.getElementById('search-input').value = '';
   activeChip = null;
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  filtered = [...all];
-  renderList(filtered);
+  const viewEmails = getViewEmails();
+  filtered = [...viewEmails];
+  renderList(viewEmails);
   document.getElementById('filter-info').textContent = '';
   document.getElementById('reset-btn').classList.add('hidden');
 }
@@ -149,6 +205,13 @@ function renderList(emails) {
 
   if (emails.length === 0) {
     empty.classList.remove('hidden');
+    const emptyMsgs = {
+      archive:    'Aucun email archivé',
+      corbeille:  'La corbeille est vide',
+      importants: 'Aucun email important',
+    };
+    document.getElementById('no-results-text').textContent =
+      emptyMsgs[currentView] || 'Aucun résultat';
     return;
   }
   empty.classList.add('hidden');
