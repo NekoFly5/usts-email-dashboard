@@ -598,9 +598,16 @@ function parseGmailMsg(msg) {
   } catch { return null; }
 }
 
+function b64ToUtf8(b64) {
+  const binary = atob(b64.replace(/-/g, '+').replace(/_/g, '/'));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
 function extractTextBody(payload) {
   if (payload.mimeType === 'text/plain' && payload.body?.data)
-    return atob(payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+    return b64ToUtf8(payload.body.data);
   for (const part of payload.parts || []) {
     const txt = extractTextBody(part);
     if (txt) return txt;
