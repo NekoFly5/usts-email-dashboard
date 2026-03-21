@@ -81,7 +81,7 @@ function setView(el, view) {
     'archive':    "Archive",
     'corbeille':  "Corbeille",
   };
-  document.getElementById('topbar-title').textContent = titles[view] || view;
+  document.querySelector('.topbar-title').textContent = titles[view] || view;
 
   const showMeta = view === 'aujourdhui';
   document.getElementById('stats-strip').style.display   = showMeta ? '' : 'none';
