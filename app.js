@@ -721,14 +721,33 @@ function initGmailAuth() {
       client_id: GMAIL_CLIENT_ID,
       scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
       callback: async resp => {
+        // Reset button state
+        const btn = document.getElementById('auth-btn');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Se connecter avec Google`;
+        }
         if (resp.error) { showAuthWall(); return; }
         await onAuthSuccess();
       },
     });
 
-    document.getElementById('auth-btn').addEventListener('click', () =>
-      _tokenClient.requestAccessToken({ prompt: 'consent' })
-    );
+    let _authPending = false;
+    document.getElementById('auth-btn').addEventListener('click', () => {
+      if (_authPending) return;
+      _authPending = true;
+      const btn = document.getElementById('auth-btn');
+      btn.disabled = true;
+      btn.textContent = 'Connexion en cours…';
+      // Use 'select_account' so Google doesn't force re-consent if already granted
+      _tokenClient.requestAccessToken({ prompt: 'select_account' });
+      // Re-enable after 8s in case the popup is closed without response
+      setTimeout(() => {
+        _authPending = false;
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Se connecter avec Google`;
+      }, 8000);
+    });
 
     // Restore token from sessionStorage if still valid (avoids popup on F5)
     const savedToken = loadSavedToken();
