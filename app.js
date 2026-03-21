@@ -528,30 +528,67 @@ function startAuthLines() {
   const canvas = document.getElementById('auth-lines');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  const pts = Array.from({ length: 38 }, () => ({
+  const pts = Array.from({ length: 42 }, () => ({
     x: Math.random(), y: Math.random(),
-    vx: (Math.random() - 0.5) * 0.00018,
-    vy: (Math.random() - 0.5) * 0.00018,
+    vx: (Math.random() - 0.5) * 0.00022,
+    vy: (Math.random() - 0.5) * 0.00022,
   }));
   const DIST = 0.22;
+  const MOUSE_DIST = 0.18;
+  const MOUSE_PUSH = 0.0004;
+  let mx = -1, my = -1;
+
+  canvas.addEventListener('mousemove', e => {
+    const r = canvas.getBoundingClientRect();
+    mx = (e.clientX - r.left) / canvas.offsetWidth;
+    my = (e.clientY - r.top) / canvas.offsetHeight;
+  });
+  canvas.addEventListener('mouseleave', () => { mx = -1; my = -1; });
+
   function draw() {
     const W = canvas.offsetWidth, H = canvas.offsetHeight;
     canvas.width = W; canvas.height = H;
     ctx.clearRect(0, 0, W, H);
+
     pts.forEach(p => {
+      // Push away from mouse
+      if (mx >= 0) {
+        const dx = p.x - mx, dy = p.y - my;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d < MOUSE_DIST && d > 0) {
+          p.vx += (dx / d) * MOUSE_PUSH;
+          p.vy += (dy / d) * MOUSE_PUSH;
+        }
+      }
+      // Speed limit
+      const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+      const MAX = 0.0008;
+      if (spd > MAX) { p.vx = p.vx / spd * MAX; p.vy = p.vy / spd * MAX; }
       p.x = (p.x + p.vx + 1) % 1;
       p.y = (p.y + p.vy + 1) % 1;
     });
+
     for (let i = 0; i < pts.length; i++) {
       for (let j = i + 1; j < pts.length; j++) {
         const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
         const d = Math.sqrt(dx * dx + dy * dy);
         if (d < DIST) {
+          // Color shifts to cyan when near mouse
+          let nearMouse = 0;
+          if (mx >= 0) {
+            const mi = Math.sqrt((pts[i].x-mx)**2 + (pts[i].y-my)**2);
+            const mj = Math.sqrt((pts[j].x-mx)**2 + (pts[j].y-my)**2);
+            nearMouse = Math.max(0, 1 - Math.min(mi, mj) / MOUSE_DIST);
+          }
+          const alpha = (1 - d / DIST) * 0.9;
+          const r = Math.round(99  + nearMouse * (6   - 99));
+          const g = Math.round(102 + nearMouse * (182 - 102));
+          const b = Math.round(241 + nearMouse * (212 - 241));
           ctx.beginPath();
           ctx.moveTo(pts[i].x * W, pts[i].y * H);
           ctx.lineTo(pts[j].x * W, pts[j].y * H);
-          ctx.strokeStyle = `rgba(99,102,241,${1 - d / DIST})`;
-          ctx.lineWidth = 1;
+          ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+          ctx.lineWidth = nearMouse > 0.2 ? 1.5 : 1;
           ctx.stroke();
         }
       }
