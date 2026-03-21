@@ -16,6 +16,10 @@ let currentView = 'aujourdhui';
 
 const IMPORTANT_KEYWORDS = ['urgent', 'important', 'priorité', 'action requise', 'asap'];
 
+const emailState = {};
+function getState(id) { return emailState[id] || {}; }
+function setState(id, patch) { emailState[id] = { ...getState(id), ...patch }; }
+
 /* ── Utils ─────────────────────────────── */
 
 const esc = s =>
@@ -56,15 +60,18 @@ function getViewEmails() {
   switch (currentView) {
     case 'importants':
       return all.filter(e => {
+        const s = getState(e.id);
+        if (s.deleted || s.archived) return false;
+        if (s.important) return true;
         const text = (e.subject + ' ' + (e.body || '')).toLowerCase();
         return IMPORTANT_KEYWORDS.some(k => text.includes(k));
       });
     case 'archive':
-      return all.filter(e => e.archived === true);
+      return all.filter(e => getState(e.id).archived && !getState(e.id).deleted);
     case 'corbeille':
-      return all.filter(e => e.deleted === true);
+      return all.filter(e => getState(e.id).deleted);
     default:
-      return all;
+      return all.filter(e => !getState(e.id).deleted && !getState(e.id).archived);
   }
 }
 
@@ -99,6 +106,95 @@ function setView(el, view) {
   filtered = [...viewEmails];
   buildChips(viewEmails);
   renderList(viewEmails);
+}
+
+/* ── Context menu ───────────────────────── */
+
+function refreshView() {
+  if (openId && !getViewEmails().some(e => e.id === openId)) closeDetail();
+  buildChips(getViewEmails());
+  applyFilters();
+}
+
+function closeContextMenu() {
+  const m = document.getElementById('ctx-menu');
+  if (m) m.remove();
+}
+
+function showContextMenuById(id, event) {
+  event.stopPropagation();
+  const email = all.find(e => e.id === id);
+  if (email) showContextMenu(email, event);
+}
+
+function showContextMenu(email, event) {
+  closeContextMenu();
+  event.stopPropagation();
+
+  const s = getState(email.id);
+
+  const iStar    = `<svg width="13" height="13" viewBox="0 0 24 24" fill="${s.important ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+  const iArchive = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>`;
+  const iTrash   = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
+  const iRestore = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>`;
+
+  const items = [
+    {
+      label:  s.important ? 'Retirer des importants' : 'Marquer comme important',
+      icon:   iStar,
+      cls:    s.important ? 'active-state' : '',
+      action: () => setState(email.id, { important: !s.important }),
+    },
+    {
+      label:  s.archived ? 'Désarchiver' : 'Archiver',
+      icon:   iArchive,
+      cls:    s.archived ? 'active-state' : '',
+      action: () => setState(email.id, { archived: !s.archived, deleted: false }),
+    },
+    'sep',
+    {
+      label:  s.deleted ? 'Restaurer' : 'Mettre à la corbeille',
+      icon:   s.deleted ? iRestore : iTrash,
+      cls:    s.deleted ? '' : 'danger',
+      action: () => setState(email.id, { deleted: !s.deleted, archived: false }),
+    },
+  ];
+
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.id = 'ctx-menu';
+
+  items.forEach(item => {
+    if (item === 'sep') {
+      const sep = document.createElement('div');
+      sep.className = 'ctx-separator';
+      menu.appendChild(sep);
+      return;
+    }
+    const el = document.createElement('div');
+    el.className = 'ctx-item' + (item.cls ? ' ' + item.cls : '');
+    el.innerHTML = item.icon + `<span>${esc(item.label)}</span>`;
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      item.action();
+      closeContextMenu();
+      refreshView();
+    });
+    menu.appendChild(el);
+  });
+
+  document.body.appendChild(menu);
+  menu.style.left = event.clientX + 'px';
+  menu.style.top  = event.clientY + 'px';
+
+  const rect = menu.getBoundingClientRect();
+  if (rect.right  > window.innerWidth  - 8) menu.style.left = (event.clientX - rect.width)  + 'px';
+  if (rect.bottom > window.innerHeight - 8) menu.style.top  = (event.clientY - rect.height) + 'px';
+
+  setTimeout(() => {
+    document.addEventListener('click', closeContextMenu, { once: true });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeContextMenu(); }, { once: true });
+  }, 0);
 }
 
 /* ── Stats strip ───────────────────────── */
@@ -236,9 +332,13 @@ function renderList(emails) {
       <div class="row-meta">
         <span class="row-time">${fmtShortTime(email.date)}</span>
         <span class="row-dot"></span>
+        <button class="row-menu-btn" onclick="showContextMenuById('${email.id}',event)" title="Actions">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+        </button>
       </div>
     `;
 
+    row.addEventListener('contextmenu', e => { e.preventDefault(); showContextMenu(email, e); });
     row.addEventListener('click', () => openEmail(email));
     list.appendChild(row);
   });
