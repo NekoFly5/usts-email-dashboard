@@ -524,6 +524,31 @@ function waitForGApis() {
   });
 }
 
+async function onAuthSuccess() {
+  document.getElementById('auth-wall').classList.add('hidden');
+  document.getElementById('sb-signout').classList.remove('hidden');
+  sessionStorage.setItem('gmail-authed', '1');
+
+  // Fetch user profile for avatar
+  try {
+    const token = gapi.client.getToken().access_token;
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const profile = await res.json();
+    const avatarEl = document.getElementById('sb-user-avatar');
+    const nameEl   = document.getElementById('sb-user-name');
+    if (profile.picture) avatarEl.style.backgroundImage = `url(${profile.picture})`;
+    else avatarEl.textContent = (profile.name || profile.email || '?')[0].toUpperCase();
+    if (nameEl) nameEl.textContent = profile.name || profile.email || '';
+    document.getElementById('sb-user').classList.remove('hidden');
+  } catch (e) { console.warn('Profile fetch failed', e); }
+
+  document.getElementById('email-list').innerHTML =
+    '<div class="list-loading"><div class="spinner"></div>Chargement des emails…</div>';
+  await loadFromGmail();
+}
+
 function initGmailAuth() {
   gapi.load('client', async () => {
     await gapi.client.init({
@@ -532,23 +557,31 @@ function initGmailAuth() {
 
     _tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: GMAIL_CLIENT_ID,
-      scope: 'https://www.googleapis.com/auth/gmail.readonly',
+      scope: 'https://www.googleapis.com/auth/gmail.readonly profile email',
       callback: async resp => {
-        if (resp.error) { console.error(resp); return; }
-        document.getElementById('auth-wall').classList.add('hidden');
-        document.getElementById('sb-signout').classList.remove('hidden');
-        document.getElementById('email-list').innerHTML =
-          '<div class="list-loading"><div class="spinner"></div>Chargement des emails…</div>';
-        await loadFromGmail();
+        if (resp.error) {
+          // Silent auth failed — show login wall
+          document.getElementById('auth-wall').classList.remove('hidden');
+          document.getElementById('email-list').innerHTML = '';
+          document.getElementById('ai-summary').textContent = 'En attente de connexion…';
+          return;
+        }
+        await onAuthSuccess();
       },
     });
 
-    document.getElementById('auth-wall').classList.remove('hidden');
-    document.getElementById('email-list').innerHTML = '';
-    document.getElementById('ai-summary').textContent = 'En attente de connexion…';
     document.getElementById('auth-btn').addEventListener('click', () =>
       _tokenClient.requestAccessToken({ prompt: 'consent' })
     );
+
+    // Try silent re-auth if user was previously logged in
+    if (sessionStorage.getItem('gmail-authed') === '1') {
+      _tokenClient.requestAccessToken({ prompt: '' });
+    } else {
+      document.getElementById('auth-wall').classList.remove('hidden');
+      document.getElementById('email-list').innerHTML = '';
+      document.getElementById('ai-summary').textContent = 'En attente de connexion…';
+    }
   });
 }
 
@@ -556,8 +589,10 @@ function signOut() {
   const token = gapi.client.getToken();
   if (token) google.accounts.oauth2.revoke(token.access_token, () => {});
   gapi.client.setToken(null);
+  sessionStorage.removeItem('gmail-authed');
   all = []; filtered = []; openId = null;
   document.getElementById('sb-signout').classList.add('hidden');
+  document.getElementById('sb-user').classList.add('hidden');
   document.getElementById('auth-wall').classList.remove('hidden');
   document.getElementById('email-list').innerHTML = '';
   document.getElementById('ai-summary').textContent = 'En attente de connexion…';
