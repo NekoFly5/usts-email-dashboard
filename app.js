@@ -523,6 +523,18 @@ let _tokenClient;
 function gapiLoaded() { _gapiReady = true; }
 function gisLoaded()  { _gisReady  = true; }
 
+function showAuthWall() {
+  document.getElementById('auth-wall').classList.remove('hidden');
+  document.getElementById('sidebar').classList.add('auth-hidden');
+  document.getElementById('email-list').innerHTML = '';
+  document.getElementById('ai-summary').textContent = 'En attente de connexion…';
+}
+
+function hideAuthWall() {
+  document.getElementById('auth-wall').classList.add('hidden');
+  document.getElementById('sidebar').classList.remove('auth-hidden');
+}
+
 function waitForGApis() {
   return new Promise(resolve => {
     const t = setInterval(() => {
@@ -532,7 +544,7 @@ function waitForGApis() {
 }
 
 async function onAuthSuccess() {
-  document.getElementById('auth-wall').classList.add('hidden');
+  hideAuthWall();
   document.getElementById('sb-signout').classList.remove('hidden');
   sessionStorage.setItem('gmail-authed', '1');
 
@@ -567,13 +579,7 @@ function initGmailAuth() {
       client_id: GMAIL_CLIENT_ID,
       scope: 'https://www.googleapis.com/auth/gmail.readonly profile email',
       callback: async resp => {
-        if (resp.error) {
-          // Silent auth failed — show login wall
-          document.getElementById('auth-wall').classList.remove('hidden');
-          document.getElementById('email-list').innerHTML = '';
-          document.getElementById('ai-summary').textContent = 'En attente de connexion…';
-          return;
-        }
+        if (resp.error) { showAuthWall(); return; }
         await onAuthSuccess();
       },
     });
@@ -586,9 +592,7 @@ function initGmailAuth() {
     if (sessionStorage.getItem('gmail-authed') === '1') {
       _tokenClient.requestAccessToken({ prompt: '' });
     } else {
-      document.getElementById('auth-wall').classList.remove('hidden');
-      document.getElementById('email-list').innerHTML = '';
-      document.getElementById('ai-summary').textContent = 'En attente de connexion…';
+      showAuthWall();
     }
   });
 }
@@ -603,9 +607,7 @@ function signOut() {
   document.getElementById('sb-user').classList.add('hidden');
   document.getElementById('sb-status-dot').style.background = '';
   document.getElementById('sb-status-label').textContent = '…';
-  document.getElementById('auth-wall').classList.remove('hidden');
-  document.getElementById('email-list').innerHTML = '';
-  document.getElementById('ai-summary').textContent = 'En attente de connexion…';
+  showAuthWall();
   document.getElementById('stats-strip').innerHTML = '';
   document.getElementById('filter-chips').innerHTML = '';
   document.getElementById('sort-chips').innerHTML = '';

@@ -1021,12 +1021,14 @@ body {
 .auth-wall {
   position: fixed;
   inset: 0;
-  left: 0;
-  z-index: 80;
+  z-index: 200;
   background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.sidebar.auth-hidden {
+  display: none;
 }
 
 .auth-card {
