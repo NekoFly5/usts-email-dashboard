@@ -57,7 +57,14 @@ function initials(email) {
 }
 
 function fmtShortTime(iso) {
-  return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const d = new Date(iso);
+  const now = new Date();
+  const todayStr = now.toDateString();
+  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+  const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (d.toDateString() === todayStr) return time;
+  if (d.toDateString() === yesterday.toDateString()) return `Hier ${time}`;
+  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
 function fmtLong(iso) {
