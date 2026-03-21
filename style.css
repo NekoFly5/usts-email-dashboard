@@ -1139,6 +1139,30 @@ body {
 }
 .auth-switch:hover { color: var(--t2); }
 
+/* ── Scrollbar ──────────────────────────────────── */
+.sb-nav::-webkit-scrollbar,
+.content-area::-webkit-scrollbar,
+.detail-message::-webkit-scrollbar { width: 4px; }
+
+.sb-nav::-webkit-scrollbar-track,
+.content-area::-webkit-scrollbar-track,
+.detail-message::-webkit-scrollbar-track { background: transparent; }
+
+.sb-nav::-webkit-scrollbar-thumb,
+.content-area::-webkit-scrollbar-thumb,
+.detail-message::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 99px;
+}
+
+.sb-nav::-webkit-scrollbar-thumb:hover,
+.content-area::-webkit-scrollbar-thumb:hover,
+.detail-message::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+.sb-nav,
+.content-area,
+.detail-message { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
 /* ── Utilities ──────────────────────────────────── */
 .hidden { display: none !important; }
 
