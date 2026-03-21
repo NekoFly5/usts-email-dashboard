@@ -499,6 +499,14 @@ function toggleSidebar() {
   ovl.classList.toggle('hidden', !open);
 }
 
+function toggleSidebarCollapse() {
+  const sidebar = document.getElementById('sidebar');
+  const layout  = document.querySelector('.layout');
+  const collapsed = sidebar.classList.toggle('collapsed');
+  layout.classList.toggle('sb-collapsed', collapsed);
+  localStorage.setItem('sb-collapsed', collapsed ? '1' : '0');
+}
+
 /* ── Gmail API ─────────────────────────── */
 
 let _gapiReady = false;
@@ -657,6 +665,11 @@ async function init() {
   const savedTheme = localStorage.getItem('theme') || 'light';
   document.documentElement.setAttribute('data-theme', savedTheme);
   updateThemeBtn(savedTheme);
+
+  if (localStorage.getItem('sb-collapsed') === '1') {
+    document.getElementById('sidebar').classList.add('collapsed');
+    document.querySelector('.layout').classList.add('sb-collapsed');
+  }
 
   if (GMAIL_CLIENT_ID) {
     await waitForGApis();
