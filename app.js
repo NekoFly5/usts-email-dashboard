@@ -179,7 +179,7 @@ function showContextMenu(email, event) {
       action: () => {
         const prev = { ...getState(email.id) };
         setState(email.id, { archived: !s.archived, deleted: false });
-        showToast(s.archived ? 'Email désarchivé' : 'Email archivé', () => setState(email.id, prev));
+        showToast(s.archived ? 'Email désarchivé' : 'Email archivé', () => { emailState[email.id] = prev; });
       },
     },
     'sep',
@@ -190,7 +190,7 @@ function showContextMenu(email, event) {
       action: () => {
         const prev = { ...getState(email.id) };
         setState(email.id, { deleted: !s.deleted, archived: false });
-        showToast(s.deleted ? 'Email restauré' : 'Déplacé dans la corbeille', () => setState(email.id, prev));
+        showToast(s.deleted ? 'Email restauré' : 'Déplacé dans la corbeille', () => { emailState[email.id] = prev; });
       },
     },
   ];
