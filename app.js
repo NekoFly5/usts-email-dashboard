@@ -140,6 +140,17 @@ function setView(el, view) {
   filtered = sortEmails(viewEmails);
   buildChips(viewEmails);
   renderList(filtered);
+
+  // Lazy-load 7-day history when user opens "Tous les mails" for the first time
+  if (view === 'tous' && !_allLoaded && GMAIL_CLIENT_ID) {
+    _allLoaded = true;
+    document.getElementById('email-list').insertAdjacentHTML('beforeend',
+      '<div class="list-loading" id="lazy-loader" style="padding:12px 0"><div class="spinner"></div>Chargement des emails plus anciens…</div>'
+    );
+    loadFromGmail('newer_than:7d', true).then(() => {
+      document.getElementById('lazy-loader')?.remove();
+    }).catch(() => document.getElementById('lazy-loader')?.remove());
+  }
 }
 
 /* ── Context menu ───────────────────────── */
@@ -785,46 +796,57 @@ function signOut() {
   closeDetail();
 }
 
-async function fetchBatch(items, fn, batchSize = 10) {
+let _allLoaded = false; // true once 7-day emails are fetched
+
+async function fetchBatch(items, fn, batchSize = 5, delay = 300) {
   const results = [];
   for (let i = 0; i < items.length; i += batchSize) {
     const chunk = items.slice(i, i + batchSize);
     const batch = await Promise.all(chunk.map(fn));
     results.push(...batch);
-    if (i + batchSize < items.length) await new Promise(r => setTimeout(r, 150));
+    if (i + batchSize < items.length) await new Promise(r => setTimeout(r, delay));
   }
   return results;
 }
 
-async function loadFromGmail() {
+async function fetchGmailMeta(query, maxMsgs = 50) {
+  const msgs = [];
+  let pageToken;
+  do {
+    const res = await gapi.client.gmail.users.messages.list({
+      userId: 'me', q: query, maxResults: Math.min(maxMsgs - msgs.length, 50),
+      ...(pageToken ? { pageToken } : {}),
+    });
+    (res.result.messages || []).forEach(m => msgs.push(m));
+    pageToken = res.result.nextPageToken;
+  } while (pageToken && msgs.length < maxMsgs);
+
+  return fetchBatch(msgs, msg =>
+    gapi.client.gmail.users.messages.get({
+      userId: 'me', id: msg.id, format: 'metadata',
+      metadataHeaders: ['From', 'Subject', 'Date'],
+    }).then(r => parseGmailMeta(r.result))
+  );
+}
+
+async function loadFromGmail(query = 'newer_than:1d', mergeWithExisting = false) {
   try {
     const today = new Date();
     const y = today.getFullYear();
     const m = String(today.getMonth() + 1).padStart(2, '0');
     const d = String(today.getDate()).padStart(2, '0');
 
-    // 1. List message IDs
-    const msgs = [];
-    let pageToken;
-    do {
-      const res = await gapi.client.gmail.users.messages.list({
-        userId: 'me', q: 'newer_than:7d', maxResults: 100,
-        ...(pageToken ? { pageToken } : {}),
-      });
-      (res.result.messages || []).forEach(m => msgs.push(m));
-      pageToken = res.result.nextPageToken;
-    } while (pageToken && msgs.length < 300);
+    const metaList = await fetchGmailMeta(query);
+    let emails = metaList.filter(Boolean);
 
-    // 2. Fetch metadata only (no body) — much lighter, avoids 429
-    const metaList = await fetchBatch(msgs, msg =>
-      gapi.client.gmail.users.messages.get({
-        userId: 'me', id: msg.id, format: 'metadata',
-        metadataHeaders: ['From', 'Subject', 'Date'],
-      }).then(r => parseGmailMeta(r.result))
-    );
-    const emails = metaList.filter(Boolean).sort((a, b) => new Date(b.date) - new Date(a.date));
+    if (mergeWithExisting) {
+      // Merge without duplicates
+      const existingIds = new Set(all.map(e => e.id));
+      emails = [...all, ...emails.filter(e => !existingIds.has(e.id))];
+    }
 
-    populateUI(emails, `${y}-${m}-${d}`, autoSummary(emails));
+    emails.sort((a, b) => new Date(b.date) - new Date(a.date));
+    populateUI(emails, `${y}-${m}-${d}`, autoSummary(emails.filter(e => isToday(e.date))));
   } catch (err) {
     console.error(err);
     const status = err?.status || err?.result?.error?.code;
