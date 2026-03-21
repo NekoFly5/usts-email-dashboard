@@ -418,6 +418,41 @@ body {
 
 .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 
+.sort-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sort-icon {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--t3);
+  pointer-events: none;
+}
+
+.sort-select {
+  padding: 6px 28px 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--t2);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  white-space: nowrap;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.sort-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+  background: var(--surface);
+}
+
 .chip {
   padding: 5px 11px;
   border-radius: 99px;

@@ -103,9 +103,9 @@ function setView(el, view) {
   closeDetail();
 
   const viewEmails = getViewEmails();
-  filtered = [...viewEmails];
+  filtered = sortEmails(viewEmails);
   buildChips(viewEmails);
-  renderList(viewEmails);
+  renderList(filtered);
 }
 
 /* ── Context menu ───────────────────────── */
@@ -285,20 +285,31 @@ function buildChips(emails) {
   });
 }
 
-/* ── Filters ───────────────────────────── */
+/* ── Filters & sort ────────────────────── */
+
+function sortEmails(emails) {
+  const sort = document.getElementById('sort-select')?.value || 'date-desc';
+  const arr = [...emails];
+  switch (sort) {
+    case 'date-asc':    return arr.sort((a, b) => new Date(a.date) - new Date(b.date));
+    case 'sender-asc':  return arr.sort((a, b) => a.from.localeCompare(b.from, 'fr'));
+    case 'subject-asc': return arr.sort((a, b) => a.subject.localeCompare(b.subject, 'fr'));
+    default:            return arr.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+}
 
 function applyFilters() {
   const kw = document.getElementById('search-input').value.trim().toLowerCase();
   const base = getViewEmails();
 
-  filtered = base.filter(e => {
+  filtered = sortEmails(base.filter(e => {
     const okSender = !activeChip || e.from === activeChip;
     const okKw = !kw
       || e.from.toLowerCase().includes(kw)
       || e.subject.toLowerCase().includes(kw)
       || (e.body || '').toLowerCase().includes(kw);
     return okSender && okKw;
-  });
+  }));
 
   renderList(filtered);
 
@@ -320,8 +331,8 @@ function resetFilters() {
   activeChip = null;
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   const viewEmails = getViewEmails();
-  filtered = [...viewEmails];
-  renderList(viewEmails);
+  filtered = sortEmails(viewEmails);
+  renderList(filtered);
   document.getElementById('filter-info').textContent = '';
   document.getElementById('reset-btn').classList.add('hidden');
 }
