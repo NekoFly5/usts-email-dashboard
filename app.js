@@ -683,6 +683,14 @@ async function loadFromGmail() {
     populateUI(emails, `${y}-${m}-${d}`, autoSummary(emails));
   } catch (err) {
     console.error(err);
+    const status = err?.status || err?.result?.error?.code;
+    if (status === 401 || status === 403) {
+      // Token invalide ou scopes insuffisants — forcer reconnexion
+      sessionStorage.removeItem('gmail-authed');
+      gapi.client.setToken(null);
+      showAuthWall();
+      return;
+    }
     document.getElementById('email-list').innerHTML = `
       <div style="padding:28px 0;text-align:center;font-size:13px;color:#ef4444;">
         Erreur Gmail<br>
