@@ -182,6 +182,25 @@ body {
   gap: 4px;
 }
 
+.sb-signout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  margin-top: 4px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--t3);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.sb-signout:hover { background: var(--surface-2); color: var(--danger); }
+.sidebar.collapsed .sb-signout span { display: none; }
+.sidebar.collapsed .sb-signout { justify-content: center; padding: 6px; }
+
 .sb-status {
   display: flex;
   align-items: center;

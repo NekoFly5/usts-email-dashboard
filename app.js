@@ -536,6 +536,7 @@ function initGmailAuth() {
       callback: async resp => {
         if (resp.error) { console.error(resp); return; }
         document.getElementById('auth-wall').classList.add('hidden');
+        document.getElementById('sb-signout').classList.remove('hidden');
         document.getElementById('email-list').innerHTML =
           '<div class="list-loading"><div class="spinner"></div>Chargement des emails…</div>';
         await loadFromGmail();
@@ -549,6 +550,22 @@ function initGmailAuth() {
       _tokenClient.requestAccessToken({ prompt: 'consent' })
     );
   });
+}
+
+function signOut() {
+  const token = gapi.client.getToken();
+  if (token) google.accounts.oauth2.revoke(token.access_token, () => {});
+  gapi.client.setToken(null);
+  all = []; filtered = []; openId = null;
+  document.getElementById('sb-signout').classList.add('hidden');
+  document.getElementById('auth-wall').classList.remove('hidden');
+  document.getElementById('email-list').innerHTML = '';
+  document.getElementById('ai-summary').textContent = 'En attente de connexion…';
+  document.getElementById('stats-strip').innerHTML = '';
+  document.getElementById('filter-chips').innerHTML = '';
+  document.getElementById('sort-chips').innerHTML = '';
+  document.getElementById('topbar-pill').textContent = '';
+  closeDetail();
 }
 
 async function loadFromGmail() {
