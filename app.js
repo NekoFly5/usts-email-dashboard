@@ -611,7 +611,7 @@ function showAuthWall() {
   document.getElementById('ai-summary').textContent = 'En attente de connexion…';
   // Show "Changer de compte" only if a previous session existed
   const sw = document.getElementById('auth-switch');
-  if (sw) sw.classList.toggle('hidden', !sessionStorage.getItem('gmail-authed'));
+  if (sw) sw.classList.toggle('hidden', !sessionStorage.getItem('gmail-token'));
   startAuthLines();
 }
 
@@ -629,22 +629,47 @@ function waitForGApis() {
   });
 }
 
+function saveToken(tokenObj) {
+  sessionStorage.setItem('gmail-token', JSON.stringify({
+    access_token: tokenObj.access_token,
+    expires_at:   Date.now() + (tokenObj.expires_in - 60) * 1000,
+  }));
+}
+
+function loadSavedToken() {
+  try {
+    const t = JSON.parse(sessionStorage.getItem('gmail-token') || 'null');
+    if (t && t.expires_at > Date.now()) return t.access_token;
+  } catch {}
+  return null;
+}
+
 async function onAuthSuccess() {
+  // Save token for F5 restore
+  const tokenObj = gapi.client.getToken();
+  if (tokenObj) saveToken(tokenObj);
+
   hideAuthWall();
   document.getElementById('sb-signout').classList.remove('hidden');
-  sessionStorage.setItem('gmail-authed', '1');
 
   // Fetch user profile for avatar
   try {
-    const token = gapi.client.getToken().access_token;
     const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${tokenObj.access_token}` },
     });
     const profile = await res.json();
     const avatarEl = document.getElementById('sb-user-avatar');
     const nameEl   = document.getElementById('sb-user-name');
-    if (profile.picture) avatarEl.style.backgroundImage = `url(${profile.picture})`;
-    else avatarEl.textContent = (profile.name || profile.email || '?')[0].toUpperCase();
+    if (profile.picture) {
+      avatarEl.style.backgroundImage = `url(${profile.picture})`;
+      // Cache profile for F5
+      sessionStorage.setItem('gmail-profile', JSON.stringify({
+        picture: profile.picture,
+        name: profile.name || profile.email || '',
+      }));
+    } else {
+      avatarEl.textContent = (profile.name || profile.email || '?')[0].toUpperCase();
+    }
     if (nameEl) nameEl.textContent = profile.name || profile.email || '';
     document.getElementById('sb-user').classList.remove('hidden');
   } catch (e) { console.warn('Profile fetch failed', e); }
@@ -653,6 +678,18 @@ async function onAuthSuccess() {
   document.getElementById('email-list').innerHTML =
     '<div class="list-loading"><div class="spinner"></div>Chargement des emails…</div>';
   await loadFromGmail();
+}
+
+function restoreCachedProfile() {
+  try {
+    const p = JSON.parse(sessionStorage.getItem('gmail-profile') || 'null');
+    if (!p) return;
+    const avatarEl = document.getElementById('sb-user-avatar');
+    const nameEl   = document.getElementById('sb-user-name');
+    if (p.picture) avatarEl.style.backgroundImage = `url(${p.picture})`;
+    if (nameEl) nameEl.textContent = p.name || '';
+    document.getElementById('sb-user').classList.remove('hidden');
+  } catch {}
 }
 
 function initGmailAuth() {
@@ -674,9 +711,17 @@ function initGmailAuth() {
       _tokenClient.requestAccessToken({ prompt: 'consent' })
     );
 
-    // Try silent re-auth if user was previously logged in
-    if (sessionStorage.getItem('gmail-authed') === '1') {
-      _tokenClient.requestAccessToken({ prompt: '' });
+    // Restore token from sessionStorage if still valid (avoids popup on F5)
+    const savedToken = loadSavedToken();
+    if (savedToken) {
+      gapi.client.setToken({ access_token: savedToken });
+      restoreCachedProfile();
+      hideAuthWall();
+      document.getElementById('sb-signout').classList.remove('hidden');
+      setStatus('gmail');
+      document.getElementById('email-list').innerHTML =
+        '<div class="list-loading"><div class="spinner"></div>Chargement des emails…</div>';
+      await loadFromGmail();
     } else {
       showAuthWall();
     }
@@ -687,7 +732,8 @@ function signOut() {
   const token = gapi.client.getToken();
   if (token) google.accounts.oauth2.revoke(token.access_token, () => {});
   gapi.client.setToken(null);
-  sessionStorage.removeItem('gmail-authed');
+  sessionStorage.removeItem('gmail-token');
+  sessionStorage.removeItem('gmail-profile');
   all = []; filtered = []; openId = null;
   document.getElementById('sb-signout').classList.add('hidden');
   document.getElementById('sb-user').classList.add('hidden');
