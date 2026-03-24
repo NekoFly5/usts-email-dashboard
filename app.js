@@ -10,7 +10,8 @@
                               https://nekofly5.github.io
    Laisser vide pour utiliser mailstoday.json
    ════════════════════════════════════════════ */
-const GMAIL_CLIENT_ID = ''; // Vide = mode démo (charge mailstoday.json directement)
+const GMAIL_CLIENT_ID = '346404392561-imvtr61ea9cctsimsq49gtco7m3j5svp.apps.googleusercontent.com';
+const DEMO_HINT = 'usts71528@gmail.com';
 
 const PALETTE = [
   '#6366f1','#8b5cf6','#a855f7','#ec4899',
@@ -751,7 +752,7 @@ function initGmailAuth() {
       const btn = document.getElementById('auth-btn');
       btn.disabled = true;
       btn.textContent = 'Connexion en cours…';
-      _tokenClient.requestAccessToken({ prompt: 'consent' });
+      _tokenClient.requestAccessToken({ prompt: 'consent', login_hint: DEMO_HINT });
       // Re-enable after 8s in case the popup is closed without response
       setTimeout(() => {
         _authPending = false;
