@@ -1,0 +1,147 @@
+{
+  "name": "Résumé Emails Gmail — Agent IA",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "042fe8c0-d174-400b-bfb9-aabe8b4479dc",
+      "name": "Démarrage manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "a4b30a9d-f65d-44ec-ba2d-c30c57c0897f",
+      "name": "Planification — 8h jours ouvrés",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": true,
+        "simple": false,
+        "filters": {
+          "q": "={{ 'after:' + new Date().toISOString().slice(0,10).replace(/-/g,'/') }}"
+        },
+        "options": {}
+      },
+      "id": "19956de3-3b14-431e-919d-c173f892bdaa",
+      "name": "Gmail — emails du jour",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        272,
+        80
+      ],
+      "webhookId": "fcd74173-a33e-4730-997e-d22ecaf998cd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "xm2wB6ieD5TaGS93",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const emails = items.map(item => {\n  const msg = item.json;\n\n  // from peut être un objet ou une string\n  let from = '';\n  if (typeof msg.from === 'string') {\n    from = msg.from;\n  } else if (msg.from?.text) {\n    from = msg.from.text;\n  } else if (msg.from?.value?.[0]) {\n    const v = msg.from.value[0];\n    from = v.name ? `${v.name} <${v.address}>` : v.address || '';\n  }\n\n  const subject = msg.subject || '(sans objet)';\n  const date = msg.internalDate\n    ? new Date(Number(msg.internalDate)).toISOString()\n    : msg.date || new Date().toISOString();\n  const snippet = msg.snippet || msg.text?.substring(0, 200) || '';\n\n  return { id: msg.id || '', from, subject, date, snippet };\n});\n\nreturn [{ json: { emails, count: emails.length } }];"
+      },
+      "id": "a2df4387-5c1b-4699-8523-c2058cdb7862",
+      "name": "Formater les emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const emails = items[0].json.emails || [];\n\n// ── 1. Résumé via Groq ──────────────────────────────────────\nlet summary = 'Résumé non disponible.';\nlet groqError = null;\ntry {\n  const https = require('https');\n  const GROQ_API_KEY = $env['GROQ_API_KEY'] || '';\n  const prompt = emails.length === 0\n    ? 'Aucun email reçu aujourd\\'hui.'\n    : emails.map((e, i) => `${i+1}. De: ${e.from}\\n   Objet: ${e.subject}\\n   Extrait: ${e.snippet?.substring(0,150)}`).join('\\n\\n');\n\n  const body = JSON.stringify({\n    model: 'llama-3.3-70b-versatile',\n    messages: [\n      { role: 'system', content: 'Tu es un assistant qui résume des emails professionnels en français, de manière concise et structurée.' },\n      { role: 'user', content: `Voici les emails reçus aujourd\\'hui. Fais un résumé concis en 3 à 5 bullet points :\\n\\n${prompt}` }\n    ],\n    temperature: 0.5,\n    max_tokens: 400\n  });\n\n  const data = await new Promise((resolve, reject) => {\n    const req = https.request({\n      hostname: 'api.groq.com',\n      path: '/openai/v1/chat/completions',\n      method: 'POST',\n      headers: {\n        'Authorization': `Bearer ${GROQ_API_KEY}`,\n        'Content-Type': 'application/json',\n        'Content-Length': Buffer.byteLength(body)\n      }\n    }, res => {\n      let raw = '';\n      res.on('data', c => raw += c);\n      res.on('end', () => resolve(JSON.parse(raw)));\n    });\n    req.on('error', reject);\n    req.write(body);\n    req.end();\n  });\n\n  if (data.error) throw new Error(JSON.stringify(data.error));\n  summary = data.choices?.[0]?.message?.content || summary;\n} catch (err) {\n  groqError = err.message;\n}\n\n// ── 2. Sauvegarder mailstoday.json ──────────────────────────\nconst fs = require('fs');\nconst outputPath = $env['MAILSTODAY_PATH'] || 'mailstoday.json';\nconst output = { generatedAt: new Date().toISOString(), summary, emails };\nfs.writeFileSync(outputPath, JSON.stringify(output, null, 2), 'utf-8');\n\nreturn [{ json: { success: true, emailCount: emails.length, summary, groqError } }];"
+      },
+      "id": "f8b6aa4f-6688-4c77-8dee-867ff73ed3e1",
+      "name": "Résumé Groq + Sauvegarde JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        80
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Démarrage manuel": {
+      "main": [
+        [
+          {
+            "node": "Gmail — emails du jour",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Planification — 8h jours ouvrés": {
+      "main": [
+        [
+          {
+            "node": "Gmail — emails du jour",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail — emails du jour": {
+      "main": [
+        [
+          {
+            "node": "Formater les emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formater les emails": {
+      "main": [
+        [
+          {
+            "node": "Résumé Groq + Sauvegarde JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3b85d2e1-dd71-418d-8c4f-cb3b0f50c2ed",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d379c6d276cd18b968149d85e437d33b23ab4fed32827674a73536c86ff17286"
+  },
+  "id": "7TlE1cRzu8bNqqOl",
+  "tags": []
+}

@@ -1,41 +1,41 @@
 {
-  "date": "2026-03-21",
+  "generatedAt": "2026-03-24T08:00:00.000Z",
+  "summary": "Voici un résumé des emails reçus aujourd'hui :\n\n* Une réunion d'équipe est planifiée pour demain à 10h — confirmation demandée.\n* Le client Dupont a validé la proposition commerciale envoyée la semaine dernière.\n* Une mise à jour de sécurité critique est disponible pour le serveur de production.\n* L'équipe RH rappelle que les feuilles de temps doivent être soumises avant vendredi.\n* Un nouveau ticket support a été ouvert par le client Martin concernant un bug d'affichage.",
   "emails": [
     {
-      "id": "1",
-      "from": "alice.martin@example.com",
-      "subject": "Réunion d'équipe vendredi",
-      "date": "2026-03-21T08:15:00",
-      "body": "Bonjour, je vous rappelle que la réunion d'équipe est prévue vendredi à 14h. Merci de confirmer votre présence."
+      "id": "demo001",
+      "from": "\"Marie Dupont\" <m.dupont@example.com>",
+      "subject": "Réunion d'équipe demain 10h",
+      "date": "2026-03-24T07:42:00.000Z",
+      "snippet": "Bonjour à tous, je vous rappelle que notre réunion hebdomadaire aura lieu demain matin à 10h en salle B. Merci de confirmer votre présence."
     },
     {
-      "id": "2",
-      "from": "newsletter@tech-news.io",
-      "subject": "Les dernières tendances IA - Mars 2026",
-      "date": "2026-03-21T09:02:00",
-      "body": "Au sommaire cette semaine : Claude 4.6 dépasse les benchmarks, n8n v2 sort en production, les LLM locaux gagnent du terrain..."
+      "id": "demo002",
+      "from": "\"Client Dupont\" <contact@dupont-sarl.fr>",
+      "subject": "Validation de la proposition commerciale",
+      "date": "2026-03-24T08:15:00.000Z",
+      "snippet": "Bonjour, suite à notre échange de la semaine dernière, nous avons le plaisir de vous confirmer notre accord sur la proposition que vous nous avez soumise."
     },
     {
-      "id": "3",
-      "from": "support@github.com",
-      "subject": "Votre Pull Request a été mergée",
-      "date": "2026-03-21T10:45:00",
-      "body": "La Pull Request #42 'feat: add email dashboard' a été mergée dans main. Bravo !"
+      "id": "demo003",
+      "from": "\"Système\" <noreply@infra.internal>",
+      "subject": "[URGENT] Mise à jour de sécurité disponible",
+      "date": "2026-03-24T08:30:00.000Z",
+      "snippet": "Une mise à jour de sécurité critique est disponible pour votre serveur de production. Veuillez procéder à l'installation dans les plus brefs délais."
     },
     {
-      "id": "4",
-      "from": "boss@monentreprise.fr",
-      "subject": "Rapport hebdomadaire - urgent",
-      "date": "2026-03-21T11:30:00",
-      "body": "Bonjour, merci de me faire parvenir le rapport hebdomadaire avant 17h aujourd'hui. Cordialement."
+      "id": "demo004",
+      "from": "\"RH\" <rh@example.com>",
+      "subject": "Rappel : feuilles de temps — deadline vendredi",
+      "date": "2026-03-24T09:00:00.000Z",
+      "snippet": "Bonjour, nous vous rappelons que les feuilles de temps du mois de mars doivent être soumises avant vendredi 18h. Merci de votre coopération."
     },
     {
-      "id": "5",
-      "from": "alice.martin@example.com",
-      "subject": "RE: Réunion d'équipe vendredi",
-      "date": "2026-03-21T13:20:00",
-      "body": "Merci pour le rappel ! Je confirme ma présence. Est-ce qu'on peut prévoir un point sur le projet n8n ?"
+      "id": "demo005",
+      "from": "\"Support\" <support@example.com>",
+      "subject": "[Ticket #4821] Bug d'affichage signalé par client Martin",
+      "date": "2026-03-24T09:20:00.000Z",
+      "snippet": "Un nouveau ticket a été ouvert. Le client Martin signale un problème d'affichage sur la page de facturation. Priorité : haute."
     }
-  ],
-  "summary": "Aujourd'hui, 5 emails ont été reçus. Alice Martin a envoyé 2 messages concernant la réunion d'équipe de vendredi. Une newsletter tech a été reçue avec les tendances IA du mois. GitHub a notifié le merge d'une Pull Request. Le point le plus urgent est la demande du responsable concernant le rapport hebdomadaire à rendre avant 17h."
+  ]
 }
