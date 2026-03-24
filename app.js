@@ -10,8 +10,8 @@
                               https://nekofly5.github.io
    Laisser vide pour utiliser mailstoday.json
    ════════════════════════════════════════════ */
-const GMAIL_CLIENT_ID = '346404392561-imvtr61ea9cctsimsq49gtco7m3j5svp.apps.googleusercontent.com';
-const DEMO_HINT = 'usts71528@gmail.com';
+const GMAIL_CLIENT_ID = '';
+const DEMO_HINT = '';
 
 const PALETTE = [
   '#6366f1','#8b5cf6','#a855f7','#ec4899',
