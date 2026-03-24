@@ -1,5 +1,6 @@
 {
   "generatedAt": "2026-03-24T08:00:00.000Z",
+  "date": "2026-03-24",
   "summary": "Voici un résumé des emails reçus aujourd'hui :\n\n* Une réunion d'équipe est planifiée pour demain à 10h — confirmation demandée.\n* Le client Dupont a validé la proposition commerciale envoyée la semaine dernière.\n* Une mise à jour de sécurité critique est disponible pour le serveur de production.\n* L'équipe RH rappelle que les feuilles de temps doivent être soumises avant vendredi.\n* Un nouveau ticket support a été ouvert par le client Martin concernant un bug d'affichage.",
   "emails": [
     {
