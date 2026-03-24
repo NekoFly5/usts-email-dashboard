@@ -443,7 +443,6 @@ body {
   padding: 20px;
   box-shadow: var(--shadow-sm);
   position: relative;
-  overflow: clip;
   flex-shrink: 0;
 }
 
@@ -455,6 +454,7 @@ body {
   right: 0;
   height: 3px;
   background: linear-gradient(90deg, var(--accent), #a855f7, #ec4899);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
 }
 
 .summary-eyebrow {
