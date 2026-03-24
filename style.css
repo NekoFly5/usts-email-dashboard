@@ -472,6 +472,7 @@ body {
   font-size: 13.5px;
   color: var(--t2);
   line-height: 1.75;
+  white-space: pre-line;
 }
 
 /* Filter bar */

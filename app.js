@@ -967,13 +967,17 @@ function extractTextBody(payload) {
 
 function autoSummary(emails) {
   if (!emails.length) return "Aucun email reçu aujourd'hui.";
-  const senders = new Set(emails.map(e => e.from)).size;
-  const urgent  = emails.filter(e =>
-    IMPORTANT_KEYWORDS.some(k => (e.subject + ' ' + e.body).toLowerCase().includes(k))
-  ).length;
-  let s = `${emails.length} email${emails.length > 1 ? 's' : ''} reçu${emails.length > 1 ? 's' : ''} aujourd'hui, de ${senders} expéditeur${senders > 1 ? 's' : ''} différent${senders > 1 ? 's' : ''}.`;
-  if (urgent) s += ` ${urgent} message${urgent > 1 ? 's semblent' : ' semble'} urgent${urgent > 1 ? 's' : ''}.`;
-  return s;
+
+  const lines = emails.map(e => {
+    const from = e.from.replace(/<[^>]+>/g, '').replace(/"/g, '').trim();
+    const snippet = (e.snippet || e.body || '').substring(0, 120).replace(/\s+/g, ' ').trim();
+    if (snippet) return `• ${e.subject} (de ${from}) — ${snippet}`;
+    return `• ${e.subject} (de ${from})`;
+  });
+
+  const count = emails.length;
+  const intro = `${count} email${count > 1 ? 's' : ''} reçu${count > 1 ? 's' : ''} aujourd'hui :`;
+  return intro + '\n' + lines.join('\n');
 }
 
 /* ── Init ──────────────────────────────── */
