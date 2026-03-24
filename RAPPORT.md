@@ -25,7 +25,8 @@ projet/
 - Connexion Gmail via OAuth2 (Google Identity Services)
 - Récupération des emails du jour via l'API Gmail v1
 - Affichage : expéditeur, objet, date/heure, extrait
-- Résumé IA généré localement à partir des métadonnées
+- Résumé du jour généré à partir des sujets et extraits des emails (affichage bullet par email)
+- Fallback sur le résumé Groq de `mailstoday.json` quand disponible (mode n8n)
 - Filtres par expéditeur (chips cliquables)
 - Tri par date, expéditeur ou objet
 - Vues : "Aujourd'hui" / "Tous les mails" (7 jours)
@@ -63,6 +64,8 @@ L'authentification utilise le flux OAuth2 par token de Google Identity Services 
 | Session perdue au rechargement (F5) | GIS ne propose pas de rafraîchissement silencieux | Sauvegarde du token dans `sessionStorage` avec vérification de l'expiration |
 | Sidebar visible derrière l'écran de connexion | `z-index` insuffisant | `position: fixed; inset: 0; z-index: 200` sur l'écran d'auth |
 | Dates incorrectes | Le header `Date` des emails est parfois malformé | Utilisation de `internalDate` (timestamp fiable fourni par l'API Gmail) |
+| Boucle infinie 403 | `requestAccessToken({prompt:'consent'})` redéclenche un 403 en boucle | Flag `_consentAttempted` pour ne tenter le consentement qu'une seule fois |
+| Résumé trop vague ("6 emails de 2 expéditeurs") | `autoSummary` ne lisait que les métadonnées statistiques | Réécriture pour afficher un bullet par email avec sujet, expéditeur et extrait |
 
 ---
 
@@ -142,6 +145,8 @@ docker run -it --rm --name n8n \
 - Tri, filtres par expéditeur, vues "Aujourd'hui" / "7 jours"
 - Panneau de lecture avec chargement du corps à la demande
 - Gestion des erreurs API (429, 403, 401) avec messages utilisateur
+- Résumé détaillé par email (sujet, expéditeur, extrait) avec fallback sur résumé Groq
+- Compte de démo pré-sélectionné via `login_hint` pour faciliter les tests recruteur
 
 ### Partie 2
 - Workflow n8n fonctionnel en local
