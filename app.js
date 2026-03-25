@@ -1021,7 +1021,11 @@ function populateUI(emails, dateStr, summary) {
 
 async function loadFromJson() {
   try {
-    const res = await fetch('mailstoday.json');
+    // Essaie d'abord le webhook n8n, sinon fallback sur mailstoday.json
+    let res = await fetch('http://localhost:5678/webhook/mailstoday').catch(() => null);
+    if (!res || !res.ok) {
+      res = await fetch('mailstoday.json');
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const emails = (data.emails || []).sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1033,8 +1037,8 @@ async function loadFromJson() {
     console.error(err);
     document.getElementById('email-list').innerHTML = `
       <div style="padding:28px 0;text-align:center;font-size:13px;color:#ef4444;">
-        Impossible de charger mailstoday.json<br>
-        <span style="color:#a1a1aa;font-size:12px;">Utilisez un serveur HTTP local (ex: Live Server)</span>
+        Impossible de charger les données<br>
+        <span style="color:#a1a1aa;font-size:12px;">Vérifiez que n8n tourne sur localhost:5678</span>
       </div>`;
     document.getElementById('ai-summary').textContent = 'Données non disponibles.';
   }

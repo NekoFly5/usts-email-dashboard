@@ -1,41 +1,41 @@
 {
-  "generatedAt": "2026-03-24T08:00:00.000Z",
-  "date": "2026-03-24",
+  "generatedAt": "2026-03-25T08:00:00.000Z",
+  "date": "2026-03-25",
   "summary": "Voici un résumé des emails reçus aujourd'hui :\n\n* Une réunion d'équipe est planifiée pour demain à 10h — confirmation demandée.\n* Le client Dupont a validé la proposition commerciale envoyée la semaine dernière.\n* Une mise à jour de sécurité critique est disponible pour le serveur de production.\n* L'équipe RH rappelle que les feuilles de temps doivent être soumises avant vendredi.\n* Un nouveau ticket support a été ouvert par le client Martin concernant un bug d'affichage.",
   "emails": [
     {
       "id": "demo001",
       "from": "\"Marie Dupont\" <m.dupont@example.com>",
       "subject": "Réunion d'équipe demain 10h",
-      "date": "2026-03-24T07:42:00.000Z",
+      "date": "2026-03-25T07:42:00.000Z",
       "snippet": "Bonjour à tous, je vous rappelle que notre réunion hebdomadaire aura lieu demain matin à 10h en salle B. Merci de confirmer votre présence."
     },
     {
       "id": "demo002",
       "from": "\"Client Dupont\" <contact@dupont-sarl.fr>",
       "subject": "Validation de la proposition commerciale",
-      "date": "2026-03-24T08:15:00.000Z",
+      "date": "2026-03-25T08:15:00.000Z",
       "snippet": "Bonjour, suite à notre échange de la semaine dernière, nous avons le plaisir de vous confirmer notre accord sur la proposition que vous nous avez soumise."
     },
     {
       "id": "demo003",
       "from": "\"Système\" <noreply@infra.internal>",
       "subject": "[URGENT] Mise à jour de sécurité disponible",
-      "date": "2026-03-24T08:30:00.000Z",
+      "date": "2026-03-25T08:30:00.000Z",
       "snippet": "Une mise à jour de sécurité critique est disponible pour votre serveur de production. Veuillez procéder à l'installation dans les plus brefs délais."
     },
     {
       "id": "demo004",
       "from": "\"RH\" <rh@example.com>",
       "subject": "Rappel : feuilles de temps — deadline vendredi",
-      "date": "2026-03-24T09:00:00.000Z",
+      "date": "2026-03-25T09:00:00.000Z",
       "snippet": "Bonjour, nous vous rappelons que les feuilles de temps du mois de mars doivent être soumises avant vendredi 18h. Merci de votre coopération."
     },
     {
       "id": "demo005",
       "from": "\"Support\" <support@example.com>",
       "subject": "[Ticket #4821] Bug d'affichage signalé par client Martin",
-      "date": "2026-03-24T09:20:00.000Z",
+      "date": "2026-03-25T09:20:00.000Z",
       "snippet": "Un nouveau ticket a été ouvert. Le client Martin signale un problème d'affichage sur la page de facturation. Priorité : haute."
     }
   ]

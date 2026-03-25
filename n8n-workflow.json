@@ -7,10 +7,7 @@
       "name": "Démarrage manuel",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [
-        0,
-        0
-      ]
+      "position": [0, 0]
     },
     {
       "parameters": {
@@ -27,10 +24,21 @@
       "name": "Planification — 8h jours ouvrés",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1,
-      "position": [
-        0,
-        160
-      ]
+      "position": [0, 160]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "mailstoday",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b1c2d3e4-f5a6-7890-abcd-ef1234567890",
+      "name": "Webhook — GET /mailstoday",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 320],
+      "webhookId": "mailstoday-webhook"
     },
     {
       "parameters": {
@@ -46,11 +54,7 @@
       "name": "Gmail — emails du jour",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2,
-      "position": [
-        272,
-        80
-      ],
-      "webhookId": "fcd74173-a33e-4730-997e-d22ecaf998cd",
+      "position": [280, 160],
       "credentials": {
         "gmailOAuth2": {
           "id": "xm2wB6ieD5TaGS93",
@@ -60,82 +64,115 @@
     },
     {
       "parameters": {
-        "jsCode": "const emails = items.map(item => {\n  const msg = item.json;\n\n  // from peut être un objet ou une string\n  let from = '';\n  if (typeof msg.from === 'string') {\n    from = msg.from;\n  } else if (msg.from?.text) {\n    from = msg.from.text;\n  } else if (msg.from?.value?.[0]) {\n    const v = msg.from.value[0];\n    from = v.name ? `${v.name} <${v.address}>` : v.address || '';\n  }\n\n  const subject = msg.subject || '(sans objet)';\n  const date = msg.internalDate\n    ? new Date(Number(msg.internalDate)).toISOString()\n    : msg.date || new Date().toISOString();\n  const snippet = msg.snippet || msg.text?.substring(0, 200) || '';\n\n  return { id: msg.id || '', from, subject, date, snippet };\n});\n\nreturn [{ json: { emails, count: emails.length } }];"
+        "jsCode": "const emails = items.map(item => {\n  const msg = item.json;\n\n  let from = '';\n  if (typeof msg.from === 'string') {\n    from = msg.from;\n  } else if (msg.from?.text) {\n    from = msg.from.text;\n  } else if (msg.from?.value?.[0]) {\n    const v = msg.from.value[0];\n    from = v.name ? `${v.name} <${v.address}>` : v.address || '';\n  }\n\n  const subject = msg.subject || '(sans objet)';\n  const date = msg.internalDate\n    ? new Date(Number(msg.internalDate)).toISOString()\n    : msg.date || new Date().toISOString();\n  const body = msg.text || msg.body?.text || msg.snippet || '';\n  const snippet = msg.snippet || body.substring(0, 200);\n\n  return { id: msg.id || '', from, subject, date, snippet, body };\n});\n\nreturn [{ json: { emails, count: emails.length } }];"
       },
       "id": "a2df4387-5c1b-4699-8523-c2058cdb7862",
       "name": "Formater les emails",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        512,
-        80
-      ]
+      "position": [520, 160]
     },
     {
       "parameters": {
-        "jsCode": "const emails = items[0].json.emails || [];\n\n// ── 1. Résumé via Groq ──────────────────────────────────────\nlet summary = 'Résumé non disponible.';\nlet groqError = null;\ntry {\n  const https = require('https');\n  const GROQ_API_KEY = $env['GROQ_API_KEY'] || '';\n  const prompt = emails.length === 0\n    ? 'Aucun email reçu aujourd\\'hui.'\n    : emails.map((e, i) => `${i+1}. De: ${e.from}\\n   Objet: ${e.subject}\\n   Extrait: ${e.snippet?.substring(0,150)}`).join('\\n\\n');\n\n  const body = JSON.stringify({\n    model: 'llama-3.3-70b-versatile',\n    messages: [\n      { role: 'system', content: 'Tu es un assistant qui résume des emails professionnels en français, de manière concise et structurée.' },\n      { role: 'user', content: `Voici les emails reçus aujourd\\'hui. Fais un résumé concis en 3 à 5 bullet points :\\n\\n${prompt}` }\n    ],\n    temperature: 0.5,\n    max_tokens: 400\n  });\n\n  const data = await new Promise((resolve, reject) => {\n    const req = https.request({\n      hostname: 'api.groq.com',\n      path: '/openai/v1/chat/completions',\n      method: 'POST',\n      headers: {\n        'Authorization': `Bearer ${GROQ_API_KEY}`,\n        'Content-Type': 'application/json',\n        'Content-Length': Buffer.byteLength(body)\n      }\n    }, res => {\n      let raw = '';\n      res.on('data', c => raw += c);\n      res.on('end', () => resolve(JSON.parse(raw)));\n    });\n    req.on('error', reject);\n    req.write(body);\n    req.end();\n  });\n\n  if (data.error) throw new Error(JSON.stringify(data.error));\n  summary = data.choices?.[0]?.message?.content || summary;\n} catch (err) {\n  groqError = err.message;\n}\n\n// ── 2. Sauvegarder mailstoday.json ──────────────────────────\nconst fs = require('fs');\nconst outputPath = $env['MAILSTODAY_PATH'] || 'mailstoday.json';\nconst output = { generatedAt: new Date().toISOString(), summary, emails };\nfs.writeFileSync(outputPath, JSON.stringify(output, null, 2), 'utf-8');\n\nreturn [{ json: { success: true, emailCount: emails.length, summary, groqError } }];"
+        "jsCode": "const emails = items[0].json.emails || [];\n\nconst staticData = $getWorkflowStaticData('global');\nstaticData.emails = JSON.stringify(emails);\n\nconst prompt = emails.length === 0\n  ? 'Aucun email reçu aujourd\\'hui.'\n  : emails.map((e, i) => `${i+1}. De: ${e.from}\\n   Objet: ${e.subject}\\n   Extrait: ${e.snippet?.substring(0,150)}`).join('\\n\\n');\n\nreturn [{ json: {\n  groqBody: JSON.stringify({\n    model: 'llama-3.3-70b-versatile',\n    messages: [\n      { role: 'system', content: 'Tu es un assistant qui résume des emails professionnels en français, de manière concise et structurée.' },\n      { role: 'user', content: `Voici les emails reçus aujourd\\'hui. Fais un résumé concis en 3 à 5 bullet points :\\n\\n${prompt}` }\n    ],\n    temperature: 0.5,\n    max_tokens: 400\n  })\n}}];"
       },
-      "id": "f8b6aa4f-6688-4c77-8dee-867ff73ed3e1",
-      "name": "Résumé Groq + Sauvegarde JSON",
+      "id": "c1d2e3f4-a5b6-7890-cdef-123456789abc",
+      "name": "Préparer Groq",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        752,
-        80
-      ]
+      "position": [760, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $vars.GROQ_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.groqBody }}",
+        "options": {}
+      },
+      "id": "d2e3f4a5-b6c7-8901-defa-23456789abcd",
+      "name": "Appel Groq API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1000, 160]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst emails = staticData.emails ? JSON.parse(staticData.emails) : [];\nconst summary = items[0].json.choices?.[0]?.message?.content || 'Résumé non disponible.';\n\nreturn [{ json: {\n  generatedAt: new Date().toISOString(),\n  date: new Date().toISOString().split('T')[0],\n  summary,\n  emails\n} }];"
+      },
+      "id": "e3f4a5b6-c7d8-9012-efab-3456789abcde",
+      "name": "Formater réponse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1240, 160]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "d3e4f5a6-b7c8-9012-cdef-123456789012",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1480, 320]
     }
   ],
   "pinData": {},
   "connections": {
     "Démarrage manuel": {
-      "main": [
-        [
-          {
-            "node": "Gmail — emails du jour",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Gmail — emails du jour", "type": "main", "index": 0 }]]
     },
     "Planification — 8h jours ouvrés": {
-      "main": [
-        [
-          {
-            "node": "Gmail — emails du jour",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Gmail — emails du jour", "type": "main", "index": 0 }]]
+    },
+    "Webhook — GET /mailstoday": {
+      "main": [[{ "node": "Gmail — emails du jour", "type": "main", "index": 0 }]]
     },
     "Gmail — emails du jour": {
-      "main": [
-        [
-          {
-            "node": "Formater les emails",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Formater les emails", "type": "main", "index": 0 }]]
     },
     "Formater les emails": {
-      "main": [
-        [
-          {
-            "node": "Résumé Groq + Sauvegarde JSON",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Préparer Groq", "type": "main", "index": 0 }]]
+    },
+    "Préparer Groq": {
+      "main": [[{ "node": "Appel Groq API", "type": "main", "index": 0 }]]
+    },
+    "Appel Groq API": {
+      "main": [[{ "node": "Formater réponse", "type": "main", "index": 0 }]]
+    },
+    "Formater réponse": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
     }
   },
   "active": false,
   "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
+    "executionOrder": "v1"
   },
   "versionId": "3b85d2e1-dd71-418d-8c4f-cb3b0f50c2ed",
   "meta": {

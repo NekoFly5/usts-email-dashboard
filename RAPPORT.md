@@ -2,7 +2,7 @@
 
 ## Contexte
 
-Ce projet a pour objectif de développer une interface web affichant un récapitulatif des emails reçus dans la journée, couplée à un workflow d'automatisation n8n capable de récupérer, traiter et résumer ces emails via une IA.
+Ce projet a pour objectif de développer une interface web affichant un récapitulatif des emails reçus dans la journée, couplée à un workflow d'automatisation n8n capable de récupérer, traiter et résumer ces emails via une IA (Groq).
 
 ---
 
@@ -10,62 +10,56 @@ Ce projet a pour objectif de développer une interface web affichant un récapit
 
 ### Architecture choisie
 
-L'interface est développée en **HTML/CSS/JavaScript vanilla**, sans framework, pour rester simple et déployable statiquement sur GitHub Pages.
+L'interface est développée en **HTML/CSS/JavaScript vanilla**, sans framework, pour rester simple et déployable statiquement.
 
 **Structure des fichiers :**
 ```
-projet/
-├── index.html        # Structure de la page
-├── style.css         # Styles et animations
-├── app.js            # Logique applicative
-└── mailstoday.json   # Données de démonstration
+USTS/
+├── index.html           # Structure de la page
+├── style.css            # Styles et animations
+├── app.js               # Logique applicative
+├── mailstoday.json      # Données de démonstration (fallback)
+├── nginx.conf           # Configuration serveur local
+├── docker-compose.yml   # Orchestration Docker
+├── n8n-workflow.json    # Export du workflow n8n
+└── RAPPORT.md           # Ce rapport
 ```
 
 **Fonctionnalités implémentées :**
-- Connexion Gmail via OAuth2 (Google Identity Services)
-- Récupération des emails du jour via l'API Gmail v1
-- Affichage : expéditeur, objet, date/heure, extrait
-- Résumé du jour généré à partir des sujets et extraits des emails (affichage bullet par email)
-- Fallback sur le résumé Groq de `mailstoday.json` quand disponible (mode n8n)
+- Chargement des emails depuis le webhook n8n (`http://localhost:5678/webhook/mailstoday`)
+- Fallback automatique sur `mailstoday.json` si n8n n'est pas disponible
+- Affichage : expéditeur, objet, date/heure, corps du message
+- Résumé IA de la journée généré par Groq via n8n
 - Filtres par expéditeur (chips cliquables)
 - Tri par date, expéditeur ou objet
-- Vues : "Aujourd'hui" / "Tous les mails" (7 jours)
-- Panneau de détail avec corps de l'email
-- Sidebar rétractable avec profil utilisateur
+- Vues : "Aujourd'hui" / "Tous les mails" / "Importants" / "Archive" / "Corbeille"
+- Panneau de détail avec corps complet de l'email
+- Sidebar rétractable
 - Interface responsive (mobile/desktop)
-- Thème sombre
-
-**Authentification :**
-
-L'authentification utilise le flux OAuth2 par token de Google Identity Services (GIS). Le token est stocké en `sessionStorage` avec sa date d'expiration pour éviter une reconnexion à chaque rechargement de page.
+- Thème clair/sombre
 
 ### Étapes d'installation
 
-1. Créer un projet sur [Google Cloud Console](https://console.cloud.google.com)
-2. Activer l'**API Gmail**
-3. Créer un **ID client OAuth2** (Application Web)
-4. Ajouter les origines autorisées :
-   - `http://localhost:5500`
-   - `https://nekofly5.github.io`
-5. Configurer l'écran de consentement OAuth (scopes : `gmail.readonly`, `userinfo.profile`, `userinfo.email`)
-6. Renseigner le Client ID dans `app.js` :
-   ```js
-   const GMAIL_CLIENT_ID = 'VOTRE_CLIENT_ID.apps.googleusercontent.com';
-   ```
-7. Déployer sur GitHub Pages ou ouvrir avec un serveur local (ex: Live Server)
+**Prérequis :** Docker Desktop installé et démarré.
 
-### Difficultés rencontrées
+1. Cloner le projet :
+```bash
+git clone https://github.com/NekoFly5/usts-email-dashboard.git
+cd usts-email-dashboard
+```
 
-| Problème | Cause | Solution |
-|----------|-------|----------|
-| Erreurs 429 (Too Many Requests) | Trop de requêtes parallèles à l'API Gmail | Passage à `format=metadata` pour la liste, chargement du corps uniquement au clic, traitement par lots de 3 avec délai de 500ms |
-| Double connexion requise | `select_account` ne déclenche pas l'écran de consentement Gmail | Utilisation de `prompt: 'consent'` dès le premier clic |
-| Caractères accentués corrompus (é → Ã©) | `atob()` ne gère pas l'UTF-8 | Décodage via `TextDecoder('utf-8')` sur un `Uint8Array` |
-| Session perdue au rechargement (F5) | GIS ne propose pas de rafraîchissement silencieux | Sauvegarde du token dans `sessionStorage` avec vérification de l'expiration |
-| Sidebar visible derrière l'écran de connexion | `z-index` insuffisant | `position: fixed; inset: 0; z-index: 200` sur l'écran d'auth |
-| Dates incorrectes | Le header `Date` des emails est parfois malformé | Utilisation de `internalDate` (timestamp fiable fourni par l'API Gmail) |
-| Boucle infinie 403 | `requestAccessToken({prompt:'consent'})` redéclenche un 403 en boucle | Flag `_consentAttempted` pour ne tenter le consentement qu'une seule fois |
-| Résumé trop vague ("6 emails de 2 expéditeurs") | `autoSummary` ne lisait que les métadonnées statistiques | Réécriture pour afficher un bullet par email avec sujet, expéditeur et extrait |
+2. Créer le fichier `.env` :
+```
+GROQ_API_KEY=votre_clé_groq
+```
+
+3. Lancer les services :
+```bash
+docker compose up
+```
+
+4. Ouvrir l'interface web : `http://localhost:8080`
+5. Ouvrir n8n : `http://localhost:5678`
 
 ---
 
@@ -73,86 +67,106 @@ L'authentification utilise le flux OAuth2 par token de Google Identity Services 
 
 ### Architecture choisie
 
-Le workflow est exécuté en **local** via n8n self-hosted (Docker). Il s'articule en 4 étapes :
+Le workflow est exécuté en **local** via n8n self-hosted (Docker). Il s'articule en deux chaînes parallèles dans le même workflow :
 
+**Chaîne principale (collecte + résumé) :**
 ```
-[Démarrage manuel]  ──┐
-                      ├──► [Gmail — emails du jour] ──► [Formater les emails] ──► [Résumé Groq + Sauvegarde JSON]
-[Planification 8h]  ──┘
+[Démarrage manuel]      ──┐
+                           ├──► [Gmail] ──► [Formater] ──► [Préparer Groq] ──► [HTTP Request Groq] ──► [Formater réponse] ──► [Respond to Webhook]
+[Planification 8h]      ──┘
 ```
 
-**Noeud 1 & 2 — Déclencheurs**
-- Démarrage manuel (pour les tests)
-- Planification automatique : tous les jours ouvrés à 8h (cron `0 8 * * 1-5`)
+**Chaîne webhook (interface web) :**
+```
+[Webhook GET /mailstoday] ──► [même chaîne ci-dessus]
+```
 
-**Noeud 3 — Gmail**
-- Opération : `Get Many`
+**Nœud 1 & 2 — Déclencheurs**
+- Démarrage manuel (tests)
+- Planification automatique : jours ouvrés à 8h (`0 8 * * 1-5`)
+- Webhook GET `/mailstoday` : déclenché par l'interface web
+
+**Nœud 3 — Gmail**
+- Opération : `Get Many` (tous les messages)
 - Filtre : `after:YYYY/MM/DD` (emails du jour uniquement)
 - Credentials : OAuth2 Gmail
 
-**Noeud 4 — Formater les emails**
-- Code JavaScript qui extrait depuis la réponse Gmail brute :
-  - Expéditeur (`from.text`)
-  - Objet (`subject`)
-  - Date (`internalDate` → ISO 8601)
-  - Extrait (`snippet` ou `text`)
+**Nœud 4 — Formater les emails**
+- Extrait depuis la réponse Gmail brute : expéditeur, objet, date (`internalDate`), snippet, corps complet
 
-**Noeud 5 — Résumé Groq + Sauvegarde JSON**
-- Appel à l'API **Groq** (modèle `llama-3.3-70b-versatile`) pour générer un résumé en français
-- Sauvegarde du résultat dans `mailstoday.json` via le module Node.js `fs`
+**Nœud 5 — Préparer Groq**
+- Construit le prompt à partir des emails
+- Sauvegarde temporaire des emails dans la static data du workflow
+
+**Nœud 6 — HTTP Request Groq**
+- Appel à l'API **Groq** (modèle `llama-3.3-70b-versatile`)
+- Génère un résumé en français en 3 à 5 bullet points
+
+**Nœud 7 — Formater réponse**
+- Récupère les emails depuis la static data
+- Construit le JSON final : `generatedAt`, `date`, `summary`, `emails`
+
+**Nœud 8 — Respond to Webhook**
+- Retourne le JSON à l'interface web avec header CORS `Access-Control-Allow-Origin: *`
+
+> **Note sur `mailstoday.json` :** Le sujet demandait de sauvegarder les données dans un fichier JSON local via un nœud "Write Binary File" ou "Write to Local File". Cette approche a été tentée mais s'est heurtée à deux blocages : (1) n8n 2.x interdit les modules natifs Node.js (`fs`, `https`) dans les Code nodes pour des raisons de sécurité, et (2) les restrictions d'accès fichier du nœud "Read/Write Files from Disk" bloquent l'écriture même avec les variables d'environnement adéquates sur Docker Desktop Windows. En lieu et place, l'architecture retenue expose un **webhook GET** (`/mailstoday`) qui renvoie le JSON directement à l'interface web — ce qui est fonctionnellement équivalent, sans dépendance au système de fichiers. Le fichier `mailstoday.json` présent dans le repo contient des données de démonstration utilisées en fallback si n8n n'est pas disponible.
 
 ### Étapes d'installation
 
 **Prérequis :** Docker Desktop installé et démarré.
 
-1. Lancer n8n via Docker :
+1. Lancer Docker :
 ```bash
-docker run -it --rm --name n8n \
-  -p 5678:5678 \
-  -v ~/.n8n:/home/node/.n8n \
-  -e NODE_FUNCTION_ALLOW_BUILTIN=fs,https \
-  -e N8N_BLOCK_ENV_ACCESS_IN_NODE=false \
-  -e GROQ_API_KEY=VOTRE_CLÉ_GROQ \
-  -e MAILSTODAY_PATH=/data/mailstoday.json \
-  -v "/chemin/vers/projet:/data" \
-  docker.n8n.io/n8nio/n8n
+docker compose up
 ```
 
-2. Ouvrir `http://localhost:5678` et créer un compte
-3. Importer le fichier `n8n-workflow.json` (menu → Import)
-4. Configurer les credentials Gmail OAuth2 dans le noeud Gmail (même Client ID et Secret que la partie web, avec l'URI de redirection `http://localhost:5678/rest/oauth2-credential/callback`)
-5. Créer une clé API Groq gratuite sur [console.groq.com](https://console.groq.com) et la renseigner dans la variable d'environnement `GROQ_API_KEY`
-6. Exécuter le workflow via le bouton "Execute workflow"
+2. Ouvrir n8n : `http://localhost:5678` → créer un compte
+
+3. Importer le workflow : **Add workflow → Import from file** → `n8n-workflow.json`
+
+4. Configurer les credentials Gmail OAuth2 :
+   - Créer un projet sur [Google Cloud Console](https://console.cloud.google.com)
+   - Activer l'API Gmail
+   - Créer un ID client OAuth2 (Application Web)
+   - Ajouter l'URI de redirection : `http://localhost:5678/rest/oauth2-credential/callback`
+   - Ajouter le compte Gmail comme utilisateur test dans l'écran de consentement
+
+5. Dans le nœud **"Appel Groq API"**, renseigner la clé API Groq dans le header `Authorization` :
+   - Créer une clé gratuite sur [console.groq.com](https://console.groq.com)
+   - Format : `Bearer votre_clé_groq`
+
+6. **Publier** le workflow (bouton Publish en haut à droite)
+
+7. Exécuter via **Démarrage manuel** pour tester
 
 ### Difficultés rencontrées
 
 | Problème | Cause | Solution |
 |----------|-------|----------|
-| Module `fs` bloqué | n8n sandbox interdit les modules natifs par défaut | Variable d'env `NODE_FUNCTION_ALLOW_BUILTIN=fs,https` |
-| `$env` inaccessible | Accès aux variables d'env bloqué dans les Code nodes | Variable d'env `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` |
-| `fetch` indisponible | n8n sandbox ne dispose pas de `fetch` global | Utilisation du module `https` natif de Node.js |
-| Champs `from`/`subject` vides | Le toggle "Simplify" du noeud Gmail masque les headers | Désactivation de "Simplify" pour obtenir la réponse Gmail brute |
-| Installation npm échouée | Node.js v25 incompatible avec les modules natifs de n8n + Windows SDK manquant | Utilisation de Docker à la place de l'installation npm globale |
+| Module `fs` bloqué | n8n sandbox interdit les modules natifs | Remplacement par un nœud HTTP Request natif |
+| Module `https` bloqué | n8n sandbox interdit aussi `https` | Utilisation du nœud HTTP Request de n8n |
+| `$env` inaccessible dans Code nodes | Restriction de sécurité n8n | Clé directement dans le nœud HTTP Request |
+| Variables n8n payantes | `$vars` nécessite un plan Enterprise | Clé renseignée manuellement dans le nœud |
+| Fichier non accessible en écriture | Restrictions Docker bind mount + n8n sandbox | Architecture webhook : n8n répond directement à l'interface |
+| Données non persistantes | Volumes Docker perdus au redémarrage | Bind mounts vers dossiers locaux (`./n8n_data`) |
+| Installation npm échouée | Erreur `ECOMPROMISED` sur Windows | Utilisation de Docker à la place |
 
 ---
 
 ## Résultats obtenus
 
 ### Partie 1
-- Interface web fonctionnelle déployée sur GitHub Pages
-- Connexion Gmail OAuth2 opérationnelle
-- Affichage des emails avec expéditeur, objet, date, extrait
-- Tri, filtres par expéditeur, vues "Aujourd'hui" / "7 jours"
-- Panneau de lecture avec chargement du corps à la demande
-- Gestion des erreurs API (429, 403, 401) avec messages utilisateur
-- Résumé détaillé par email (sujet, expéditeur, extrait) avec fallback sur résumé Groq
-- Compte de démo pré-sélectionné via `login_hint` pour faciliter les tests recruteur
+- Interface web fonctionnelle accessible sur `http://localhost:8080`
+- Chargement dynamique des emails depuis le webhook n8n
+- Fallback sur `mailstoday.json` si n8n indisponible
+- Affichage complet : expéditeur, objet, date, corps du message
+- Filtres, tri, vues multiples, responsive, thème sombre
 
 ### Partie 2
-- Workflow n8n fonctionnel en local
+- Workflow n8n fonctionnel en local via Docker
 - Récupération automatique des emails Gmail du jour
 - Résumé IA généré par Groq (LLaMA 3.3 70B) en français
-- Sauvegarde dans `mailstoday.json` avec structure exploitable par l'interface web
+- Webhook exposé pour l'interface web
 - Planification automatique à 8h les jours ouvrés
 
 ---
@@ -163,8 +177,7 @@ docker run -it --rm --name n8n \
 |-------------|-------|
 | HTML / CSS / JavaScript | Interface web (vanilla, sans framework) |
 | Gmail API v1 | Lecture des emails |
-| Google Identity Services | Authentification OAuth2 navigateur |
 | n8n (self-hosted, Docker) | Orchestration du workflow |
 | Groq API — LLaMA 3.3 70B | Génération du résumé IA |
-| GitHub Pages | Hébergement de l'interface web |
-| Docker | Exécution de n8n en local |
+| nginx (Docker) | Serveur HTTP local pour l'interface |
+| Docker / docker-compose | Exécution locale de tous les services |

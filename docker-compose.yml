@@ -1,0 +1,25 @@
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./data:/shared
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    user: root
+    ports:
+      - "5678:5678"
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+      - ./data:/data/files
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - WEBHOOK_URL=http://localhost:5678
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES=false
+      - N8N_RESTRICT_FILE_ACCESS_TO=/data:/home/node
