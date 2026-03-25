@@ -3,11 +3,14 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "042fe8c0-d174-400b-bfb9-aabe8b4479dc",
+      "id": "2be7dc92-118b-4359-8f79-2b7de04474ea",
       "name": "Démarrage manuel",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -20,24 +23,29 @@
           ]
         }
       },
-      "id": "a4b30a9d-f65d-44ec-ba2d-c30c57c0897f",
+      "id": "1922d135-d78f-4411-815e-61624b08e7ae",
       "name": "Planification — 8h jours ouvrés",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1,
-      "position": [0, 160]
+      "position": [
+        0,
+        160
+      ]
     },
     {
       "parameters": {
-        "httpMethod": "GET",
         "path": "mailstoday",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "b1c2d3e4-f5a6-7890-abcd-ef1234567890",
+      "id": "1611348c-3e92-4c32-bf0a-eb7ced844a81",
       "name": "Webhook — GET /mailstoday",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [0, 320],
+      "position": [
+        0,
+        320
+      ],
       "webhookId": "mailstoday-webhook"
     },
     {
@@ -50,14 +58,18 @@
         },
         "options": {}
       },
-      "id": "19956de3-3b14-431e-919d-c173f892bdaa",
+      "id": "e7621a1f-25cf-4c32-9cb2-f6a6281666dc",
       "name": "Gmail — emails du jour",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2,
-      "position": [280, 160],
+      "position": [
+        288,
+        160
+      ],
+      "webhookId": "0ca843ea-bf58-4e8e-901b-54380a8206b7",
       "credentials": {
         "gmailOAuth2": {
-          "id": "xm2wB6ieD5TaGS93",
+          "id": "QRw4xl07PB0fY6Ik",
           "name": "Gmail account"
         }
       }
@@ -66,21 +78,27 @@
       "parameters": {
         "jsCode": "const emails = items.map(item => {\n  const msg = item.json;\n\n  let from = '';\n  if (typeof msg.from === 'string') {\n    from = msg.from;\n  } else if (msg.from?.text) {\n    from = msg.from.text;\n  } else if (msg.from?.value?.[0]) {\n    const v = msg.from.value[0];\n    from = v.name ? `${v.name} <${v.address}>` : v.address || '';\n  }\n\n  const subject = msg.subject || '(sans objet)';\n  const date = msg.internalDate\n    ? new Date(Number(msg.internalDate)).toISOString()\n    : msg.date || new Date().toISOString();\n  const body = msg.text || msg.body?.text || msg.snippet || '';\n  const snippet = msg.snippet || body.substring(0, 200);\n\n  return { id: msg.id || '', from, subject, date, snippet, body };\n});\n\nreturn [{ json: { emails, count: emails.length } }];"
       },
-      "id": "a2df4387-5c1b-4699-8523-c2058cdb7862",
+      "id": "71f46bbf-7c27-43d6-8f32-76905464f5b2",
       "name": "Formater les emails",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [520, 160]
+      "position": [
+        528,
+        160
+      ]
     },
     {
       "parameters": {
         "jsCode": "const emails = items[0].json.emails || [];\n\nconst staticData = $getWorkflowStaticData('global');\nstaticData.emails = JSON.stringify(emails);\n\nconst prompt = emails.length === 0\n  ? 'Aucun email reçu aujourd\\'hui.'\n  : emails.map((e, i) => `${i+1}. De: ${e.from}\\n   Objet: ${e.subject}\\n   Extrait: ${e.snippet?.substring(0,150)}`).join('\\n\\n');\n\nreturn [{ json: {\n  groqBody: JSON.stringify({\n    model: 'llama-3.3-70b-versatile',\n    messages: [\n      { role: 'system', content: 'Tu es un assistant qui résume des emails professionnels en français, de manière concise et structurée.' },\n      { role: 'user', content: `Voici les emails reçus aujourd\\'hui. Fais un résumé concis en 3 à 5 bullet points :\\n\\n${prompt}` }\n    ],\n    temperature: 0.5,\n    max_tokens: 400\n  })\n}}];"
       },
-      "id": "c1d2e3f4-a5b6-7890-cdef-123456789abc",
+      "id": "c91f2597-d22e-4e7b-abae-6975ccfd2020",
       "name": "Préparer Groq",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [760, 160]
+      "position": [
+        768,
+        160
+      ]
     },
     {
       "parameters": {
@@ -91,7 +109,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "={{ 'Bearer ' + $vars.GROQ_API_KEY }}"
+              "value": "=Bearer VOTRE_CLÉ_GROQ"
             },
             {
               "name": "Content-Type",
@@ -105,21 +123,27 @@
         "body": "={{ $json.groqBody }}",
         "options": {}
       },
-      "id": "d2e3f4a5-b6c7-8901-defa-23456789abcd",
+      "id": "304034df-a5da-41ae-ae6a-434b9ed81194",
       "name": "Appel Groq API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1000, 160]
+      "position": [
+        1008,
+        160
+      ]
     },
     {
       "parameters": {
         "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst emails = staticData.emails ? JSON.parse(staticData.emails) : [];\nconst summary = items[0].json.choices?.[0]?.message?.content || 'Résumé non disponible.';\n\nreturn [{ json: {\n  generatedAt: new Date().toISOString(),\n  date: new Date().toISOString().split('T')[0],\n  summary,\n  emails\n} }];"
       },
-      "id": "e3f4a5b6-c7d8-9012-efab-3456789abcde",
+      "id": "dfbeee5d-9df2-497e-906f-899289eebcdc",
       "name": "Formater réponse",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1240, 160]
+      "position": [
+        1248,
+        160
+      ]
     },
     {
       "parameters": {
@@ -136,49 +160,117 @@
           }
         }
       },
-      "id": "d3e4f5a6-b7c8-9012-cdef-123456789012",
+      "id": "5c154233-be1a-4921-b4c9-ce5497dbcc8b",
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1480, 320]
+      "position": [
+        1488,
+        320
+      ]
     }
   ],
   "pinData": {},
   "connections": {
     "Démarrage manuel": {
-      "main": [[{ "node": "Gmail — emails du jour", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Gmail — emails du jour",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Planification — 8h jours ouvrés": {
-      "main": [[{ "node": "Gmail — emails du jour", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Gmail — emails du jour",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Webhook — GET /mailstoday": {
-      "main": [[{ "node": "Gmail — emails du jour", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Gmail — emails du jour",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Gmail — emails du jour": {
-      "main": [[{ "node": "Formater les emails", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Formater les emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Formater les emails": {
-      "main": [[{ "node": "Préparer Groq", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Préparer Groq",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Préparer Groq": {
-      "main": [[{ "node": "Appel Groq API", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Appel Groq API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Appel Groq API": {
-      "main": [[{ "node": "Formater réponse", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Formater réponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Formater réponse": {
-      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "binaryMode": "separate"
   },
-  "versionId": "3b85d2e1-dd71-418d-8c4f-cb3b0f50c2ed",
+  "versionId": "92490b76-2ba4-471f-a2ea-a1056f017966",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "d379c6d276cd18b968149d85e437d33b23ab4fed32827674a73536c86ff17286"
+    "instanceId": "27aa39d32b352cd349cd59b78cbec652ea800a74cde77db36a4c2751d923371f"
   },
-  "id": "7TlE1cRzu8bNqqOl",
+  "id": "JGY2zDwrsQe1wutf",
   "tags": []
 }
